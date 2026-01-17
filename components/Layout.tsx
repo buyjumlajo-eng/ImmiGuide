@@ -19,7 +19,8 @@ import {
   Mic2,
   Lock,
   Zap,
-  Crown
+  Crown,
+  BookOpen
 } from 'lucide-react';
 import { ChatWidget } from './ChatWidget';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -56,8 +57,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
       if (!user) return true;
       const tier = user.subscriptionTier;
       
-      // Free: Dashboard, Marketplace
-      if (view === 'dashboard' || view === 'marketplace') return false;
+      // Free: Dashboard, Marketplace, Knowledge
+      if (view === 'dashboard' || view === 'marketplace' || view === 'knowledge') return false;
 
       // One Form: Adds Forms
       if (tier === 'one_form') {
@@ -119,6 +120,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
         <nav className="flex-1 p-4 overflow-y-auto custom-scrollbar">
           <div className="space-y-1">
             <NavItem view="dashboard" icon={LayoutDashboard} label={t('dashboard')} />
+            <NavItem view="knowledge" icon={BookOpen} label="Knowledge Center" />
             <NavItem view="forms" icon={FileText} label={t('formAssistant')} />
             <NavItem view="caselaw" icon={Gavel} label="Case Law Explorer" />
             <NavItem view="interview" icon={Mic2} label="Interview Sim" />
@@ -222,6 +224,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
         <div className="md:hidden fixed inset-0 z-40 bg-white pt-20 px-4 overflow-y-auto">
            <nav className="space-y-2">
             <NavItem view="dashboard" icon={LayoutDashboard} label={t('dashboard')} />
+            <NavItem view="knowledge" icon={BookOpen} label="Knowledge Center" />
             <NavItem view="forms" icon={FileText} label={t('formAssistant')} />
             <NavItem view="caselaw" icon={Gavel} label="Case Law Explorer" />
             <NavItem view="interview" icon={Mic2} label="Interview Sim" />

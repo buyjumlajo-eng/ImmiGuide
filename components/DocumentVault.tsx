@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { 
   FolderLock, 
@@ -12,12 +12,14 @@ import {
   Trash2,
   Eye,
   FileText,
-  X
+  X,
+  Camera
 } from 'lucide-react';
 import { StoredDocument } from '../types';
 
 export const DocumentVault: React.FC = () => {
   const { dir } = useLanguage();
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   
   // Initial Mock Data with Visual Placeholders
   const INITIAL_DOCS: StoredDocument[] = [
@@ -203,13 +205,25 @@ export const DocumentVault: React.FC = () => {
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
               >
+                  {/* Standard File Input (Hidden) - Absolute coverage for drag/drop/click area */}
                   {!isUploading && (
                       <input 
                         type="file" 
                         className="absolute inset-0 opacity-0 cursor-pointer z-10" 
                         onChange={handleFileInput} 
+                        accept="image/*,.pdf"
                       />
                   )}
+
+                  {/* Camera Input (Hidden) - Triggered by button */}
+                  <input 
+                    type="file" 
+                    ref={cameraInputRef}
+                    className="hidden" 
+                    onChange={handleFileInput} 
+                    accept="image/*"
+                    capture="environment"
+                  />
                   
                   {isUploading ? (
                       <div className="w-full max-w-xs animate-in fade-in zoom-in">
@@ -233,9 +247,22 @@ export const DocumentVault: React.FC = () => {
                         <h3 className={`text-lg font-bold transition-colors ${isDragging ? 'text-blue-700' : 'text-slate-900'}`}>
                             {isDragging ? 'Drop to Upload' : 'Upload Documents'}
                         </h3>
-                        <p className={`text-sm mt-1 transition-colors ${isDragging ? 'text-blue-600' : 'text-slate-500'}`}>
-                            Drag & drop or click to scan. We'll extract the data automatically.
+                        <p className={`text-sm mt-1 transition-colors mb-6 ${isDragging ? 'text-blue-600' : 'text-slate-500'}`}>
+                            Drag & drop or click to upload.
                         </p>
+                        
+                        <button 
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                cameraInputRef.current?.click();
+                            }}
+                            className="bg-slate-50 border border-slate-200 text-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all shadow-sm z-20 relative group/btn"
+                        >
+                            <Camera className="w-5 h-5 text-slate-500 group-hover/btn:text-blue-600" />
+                            Scan with Camera
+                        </button>
                       </>
                   )}
               </div>

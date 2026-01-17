@@ -11,6 +11,7 @@ import { TranslationCenter } from './components/TranslationCenter';
 import { AdminPanel } from './components/AdminPanel';
 import { CaseLawExplorer } from './components/CaseLawExplorer';
 import { InterviewSimulator } from './components/InterviewSimulator';
+import { KnowledgeCenter } from './components/KnowledgeCenter';
 import { Paywall } from './components/Paywall'; // Import Paywall
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -20,7 +21,7 @@ import { Loader2 } from 'lucide-react';
 import { SubscriptionTier } from './types';
 
 // Updated view router state
-export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' | 'strategy' | 'marketplace' | 'translations' | 'admin' | 'caselaw' | 'interview';
+export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' | 'strategy' | 'marketplace' | 'translations' | 'admin' | 'caselaw' | 'interview' | 'knowledge';
 
 const InnerApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
@@ -32,7 +33,7 @@ const InnerApp: React.FC = () => {
       if (view === 'admin') return true;
       
       // Free items
-      if (view === 'dashboard' || view === 'marketplace') return true;
+      if (view === 'dashboard' || view === 'marketplace' || view === 'knowledge') return true;
 
       // 'One Form' tier adds access to forms
       if (tier === 'one_form') {
@@ -91,6 +92,8 @@ const InnerApp: React.FC = () => {
         return <CaseLawExplorer />;
       case 'interview':
         return <InterviewSimulator />;
+      case 'knowledge':
+        return <KnowledgeCenter />;
       default:
         return <Dashboard onViewChange={setCurrentView} />;
     }

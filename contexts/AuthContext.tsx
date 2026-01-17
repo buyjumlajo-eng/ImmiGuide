@@ -12,13 +12,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock User Data - Default to Free
+// Mock User Data - Default to Annual (Full Access)
 const MOCK_USER: User = {
   id: 'user_123',
   name: 'Mateo',
   email: 'mateo@example.com',
   avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&q=80&w=200&h=200',
-  subscriptionTier: 'free'
+  subscriptionTier: 'annual'
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -34,7 +34,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (storedAuth) {
       setUser({
           ...MOCK_USER,
-          subscriptionTier: storedTier || 'free'
+          // Force upgrade to annual if stored tier is free, to satisfy user request
+          subscriptionTier: (storedTier && storedTier !== 'free') ? storedTier : 'annual'
       });
     }
     setIsLoading(false);
@@ -45,11 +46,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Simulate network delay
     setTimeout(() => {
       localStorage.setItem('immi_auth_token', 'mock_token_123');
-      // Reset to free on new login for demo purposes unless already set
+      // Reset to annual on new login for demo purposes
       const storedTier = localStorage.getItem('immi_sub_tier') as SubscriptionTier;
       setUser({
           ...MOCK_USER,
-          subscriptionTier: storedTier || 'free'
+          subscriptionTier: (storedTier && storedTier !== 'free') ? storedTier : 'annual'
       });
       setIsLoading(false);
     }, 800);

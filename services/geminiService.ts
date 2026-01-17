@@ -4,40 +4,93 @@ import { RFEAnalysis, FormFieldHelp, ValidationResult, Language, PredictionResul
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // --- Mock Site Contents for RAG ---
+// This data mirrors the application state to give the AI "Full Site Awareness"
 const MOCK_ATTORNEYS_DATA = `
-**VERIFIED ATTORNEY LIST**:
-1. Sarah Chen, Esq. (Chen & Associates). Specialties: Family Visas, RFE Response, Consular Processing. Languages: English, Chinese (Mandarin). Price: Starts at $250. Rating: 4.9/5.
-2. Alejandro Rodriguez (Rodriguez Legal Group). Specialties: Deportation Defense, Family Visas, Waivers. Languages: English, Spanish. Price: Starts at $200. Rating: 4.8/5.
-3. Michael Ross (Pearson Specter Litt). Specialties: Business Visas, Employment Based. Languages: English. Price: Starts at $450. Rating: 5.0/5.
-4. Layla Al-Fayed (Global Citizens Law). Specialties: Asylum, RFE Response, Family Visas. Languages: English, Arabic, French. Price: Starts at $300. Rating: 4.9/5.
+**VERIFIED ATTORNEY DIRECTORY (Marketplace)**:
+1. **Sarah Chen, Esq.** (Chen & Associates). 
+   - Specialties: Family Visas, RFE Response, Consular Processing. 
+   - Languages: English, Chinese (Mandarin). 
+   - Price: Starts at $250. Rating: 4.9/5.
+   - Status: Available Tomorrow, 10:00 AM.
+   
+2. **Alejandro Rodriguez** (Rodriguez Legal Group). 
+   - Specialties: Deportation Defense, Family Visas, Waivers. 
+   - Languages: English, Spanish. 
+   - Price: Starts at $200. Rating: 4.8/5.
+   - Status: Available Today, 4:00 PM.
+
+3. **Michael Ross** (Pearson Specter Litt). 
+   - Specialties: Business Visas, Employment Based. 
+   - Languages: English. 
+   - Price: Starts at $450. Rating: 5.0/5.
+   - Status: Available Wed, 2:00 PM.
+
+4. **Layla Al-Fayed** (Global Citizens Law). 
+   - Specialties: Asylum, RFE Response, Family Visas. 
+   - Languages: English, Arabic, French. 
+   - Price: Starts at $300. Rating: 4.9/5.
+   - Status: Available Thu, 11:00 AM.
 `;
 
 const MOCK_SITE_CONTENTS = `
 You are ImmiGuide, a specialized AI assistant for US immigration.
-You have access to the following internal data. USE IT to answer user questions.
+You have access to the following internal application structure and data. 
 
-**APP NAVIGATION / SECTIONS**:
-- 'dashboard': Main summary, case timeline, prediction engine.
-- 'forms': Form Assistant (I-130 smart help), error checking.
-- 'documents': Secure Data Vault (Bank-grade storage).
-- 'letters': AI Cover Letter Builder.
-- 'translations': AI + Certified Translations.
-- 'rfe': RFE Decoder (Upload/Analyze Request for Evidence letters).
-- 'strategy': Strategy Advisor (Chat about visa types, timelines).
-- 'marketplace': Attorney Marketplace (List of lawyers).
-- 'caselaw': Case Law Explorer (Legal precedents research).
-- 'interview': Visa Interview Simulator (Roleplay practice).
+**NAVIGATION & FEATURES MAP**:
+1. **Dashboard** ('dashboard'): 
+   - Case Timeline Tracker, Approval Predictions, Worry Tracker.
+   - Use this for general status updates or "Home".
+
+2. **Smart Form Assistant** ('forms'): 
+   - Form I-130 help, error checking, field validation.
+   - Use this if user asks about "filling forms", "I-130", "application help".
+
+3. **Secure Data Vault** ('documents'): 
+   - Document storage, scanning, OCR.
+   - Use this if user wants to "upload files", "scan passport", "save documents".
+
+4. **Letter Builder** ('letters'): 
+   - AI Cover Letter Generator for I-130, I-129F.
+   - Use this for "writing a letter", "cover letter", "proof of relationship letter".
+
+5. **Translation Center** ('translations'): 
+   - AI & Certified Translations.
+   - Use this for "translate document", "certified translation", "notarized translation".
+
+6. **RFE Decoder** ('rfe'): 
+   - Request for Evidence analysis, generating response letters.
+   - Use this if user mentions "RFE", "USCIS letter", "Request for Evidence", "denial notice".
+
+7. **Strategy Advisor** ('strategy'): 
+   - General Q&A, Visa comparison, Timeline estimation.
+   - Use this for "advice", "what visa do I need", "K1 vs CR1".
+
+8. **Attorney Marketplace** ('marketplace'): 
+   - Directory of verified lawyers, booking consultations.
+   - Use this if user asks for "a lawyer", "legal help", "attorney", or a specific name from the directory below.
+
+9. **Case Law Explorer** ('caselaw'): 
+   - Search legal precedents (BIA, Circuit Courts).
+   - Use this for "research", "legal precedents", "case law", "past rulings".
+
+10. **Interview Simulator** ('interview'):
+    - Mock interviews for Green Cards, Naturalization.
+    - Use this for "practice interview", "prep for interview", "what will they ask".
+
+11. **Knowledge Center** ('knowledge'):
+    - FREE official forms, fee schedules, and processing times.
+    - Use this for "download I-130", "how much is the fee", "application cost", "processing time", "official forms".
 
 ${MOCK_ATTORNEYS_DATA}
 
 **PRICING**:
 - Basic: Free.
-- Premium: $29/mo.
-- Attorney Consults: See attorney list for prices.
+- Premium: $29/mo (Includes RFE Decoder, Strategy, Full Forms).
+- Attorney Consults: Prices vary (see directory).
 
 **CONTACT**:
 - Support: support@immiguide.com
-- Emergency: Use Marketplace for immediate legal help.
+- Emergency: Go to Marketplace for legal counsel.
 `;
 
 const getSystemInstruction = (lang: Language) => `
@@ -527,31 +580,37 @@ export const getStrategyStream = async (history: {role: string, parts: {text: st
 // --- Support Agent Prompts & Tools ---
 
 const getSupportSystemInstruction = (lang: Language) => `
-You are a helpful voice & text assistant for ImmiGuide.
-You MUST use the provided SITE CONTENTS to answer questions. 
-If the user asks about an attorney (e.g., Sarah Chen), you MUST find them in the list and provide details.
+You are a helpful voice & text assistant for ImmiGuide, a US Immigration App.
+You MUST use the provided [NAVIGATION & FEATURES MAP] and [SITE CONTENTS] to answer questions. 
 
-**NAVIGATION RULES**:
-1. If the user asks to go to a section, use the 'changeView' tool (Voice) or append '[[NAVIGATE:view_id]]' (Text).
-2. Mappings:
-   - "Find a lawyer" / "Attorney" / "Sarah Chen" -> [[NAVIGATE:marketplace]]
-   - "Analyze letter" / "RFE" -> [[NAVIGATE:rfe]]
-   - "Form help" / "I-130" -> [[NAVIGATE:forms]]
-   - "Documents" / "Vault" -> [[NAVIGATE:documents]]
-   - "Letters" / "Write letter" -> [[NAVIGATE:letters]]
-   - "Translate" / "Translations" -> [[NAVIGATE:translations]]
-   - "Strategy" / "Advice" -> [[NAVIGATE:strategy]]
-   - "Case Law" / "Precedents" -> [[NAVIGATE:caselaw]]
-   - "Interview" / "Practice" -> [[NAVIGATE:interview]]
-   - "Home" / "Dashboard" -> [[NAVIGATE:dashboard]]
+**CRITICAL NAVIGATION RULES**:
+1. You are an "App Controller". If the user asks for a feature, you must Navigate them there.
+2. When the user's intent matches a specific section, append the token [[NAVIGATE:view_id]] to the END of your response.
+   - Example User: "I need a lawyer."
+   - Example You: "I can help you find a verified expert. Taking you to the marketplace... [[NAVIGATE:marketplace]]"
+   
+   - Example User: "Help me write a cover letter."
+   - Example You: "Let's draft that letter. Opening the Letter Builder... [[NAVIGATE:letters]]"
+   
+   - Example User: "Check my RFE."
+   - Example You: "Upload your letter in the RFE Decoder. [[NAVIGATE:rfe]]"
+   
+   - Example User: "I want to practice my interview."
+   - Example You: "Let's start a simulation. [[NAVIGATE:interview]]"
+
+   - Example User: "How much is the filing fee?" or "Download I-130"
+   - Example You: "I can show you the official fees and forms. [[NAVIGATE:knowledge]]"
+
+3. If the user asks about a SPECIFIC ATTORNEY listed in the data (e.g., "Sarah Chen"), tell them you found her profile and Navigate to 'marketplace'.
+   - Example: "Yes, Sarah Chen is available. Opening her profile... [[NAVIGATE:marketplace]]"
 
 **SITE CONTENTS**:
 ${MOCK_SITE_CONTENTS}
 
-Rules:
+**Response Rules**:
 - Respond in ${lang === 'zh' ? 'Chinese' : lang === 'es' ? 'Spanish' : lang === 'ar' ? 'Arabic' : 'English'}.
-- Keep answers short (under 100 words).
-- If navigating, say "Taking you there..." and trigger the navigation.
+- Keep answers concise (under 80 words) unless explaining a complex legal concept.
+- Be encouraging and supportive.
 `;
 
 // Tool definition for Voice Mode (Live API)
@@ -564,7 +623,7 @@ const navigationTool: FunctionDeclaration = {
       view: {
         type: Type.STRING,
         description: "The view ID to navigate to.",
-        enum: ['dashboard', 'forms', 'documents', 'letters', 'rfe', 'strategy', 'marketplace', 'translations', 'caselaw', 'interview']
+        enum: ['dashboard', 'forms', 'documents', 'letters', 'rfe', 'strategy', 'marketplace', 'translations', 'caselaw', 'interview', 'knowledge']
       },
     },
     required: ['view'],
