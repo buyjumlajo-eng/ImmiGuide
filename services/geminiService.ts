@@ -1,0 +1,617 @@
+import { GoogleGenAI, Type, Modality, FunctionDeclaration } from "@google/genai";
+import { RFEAnalysis, FormFieldHelp, ValidationResult, Language, PredictionResult, CaseLawResult, InterviewFeedback } from "../types";
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+// --- Mock Site Contents for RAG ---
+const MOCK_ATTORNEYS_DATA = `
+**VERIFIED ATTORNEY LIST**:
+1. Sarah Chen, Esq. (Chen & Associates). Specialties: Family Visas, RFE Response, Consular Processing. Languages: English, Chinese (Mandarin). Price: Starts at $250. Rating: 4.9/5.
+2. Alejandro Rodriguez (Rodriguez Legal Group). Specialties: Deportation Defense, Family Visas, Waivers. Languages: English, Spanish. Price: Starts at $200. Rating: 4.8/5.
+3. Michael Ross (Pearson Specter Litt). Specialties: Business Visas, Employment Based. Languages: English. Price: Starts at $450. Rating: 5.0/5.
+4. Layla Al-Fayed (Global Citizens Law). Specialties: Asylum, RFE Response, Family Visas. Languages: English, Arabic, French. Price: Starts at $300. Rating: 4.9/5.
+`;
+
+const MOCK_SITE_CONTENTS = `
+You are ImmiGuide, a specialized AI assistant for US immigration.
+You have access to the following internal data. USE IT to answer user questions.
+
+**APP NAVIGATION / SECTIONS**:
+- 'dashboard': Main summary, case timeline, prediction engine.
+- 'forms': Form Assistant (I-130 smart help), error checking.
+- 'documents': Secure Data Vault (Bank-grade storage).
+- 'letters': AI Cover Letter Builder.
+- 'translations': AI + Certified Translations.
+- 'rfe': RFE Decoder (Upload/Analyze Request for Evidence letters).
+- 'strategy': Strategy Advisor (Chat about visa types, timelines).
+- 'marketplace': Attorney Marketplace (List of lawyers).
+- 'caselaw': Case Law Explorer (Legal precedents research).
+- 'interview': Visa Interview Simulator (Roleplay practice).
+
+${MOCK_ATTORNEYS_DATA}
+
+**PRICING**:
+- Basic: Free.
+- Premium: $29/mo.
+- Attorney Consults: See attorney list for prices.
+
+**CONTACT**:
+- Support: support@immiguide.com
+- Emergency: Use Marketplace for immediate legal help.
+`;
+
+const getSystemInstruction = (lang: Language) => `
+You are ImmiGuide, a specialized US Immigration assistant. 
+Your goal is to reduce anxiety and prevent errors for immigrants.
+You are NOT a lawyer and cannot give legal advice, but you provide legal information, strategy, and plain-english translations of complex USCIS terms.
+Always be empathetic, clear, and structured.
+IMPORTANT: You MUST interact with the user in ${lang === 'zh' ? 'Chinese (Simplified)' : lang === 'es' ? 'Spanish' : lang === 'ar' ? 'Arabic' : 'English'}.
+All output, including JSON values, validation messages, and chat responses, must be in this language unless specifically asked otherwise.
+`;
+
+export type GeminiInput = string | { mimeType: string, data: string };
+
+export const analyzeRFE = async (input: GeminiInput, lang: Language = 'en'): Promise<RFEAnalysis> => {
+  try {
+    const promptText = `Analyze this USCIS Request for Evidence (RFE) or Notice. 
+      Break it down into:
+      1. A simple summary of what they actually want.
+      2. A list of specific missing evidence they are asking for.
+      3. The severity level (Low = minor fix, Medium = standard request, High = intent to deny/complex).
+      4. Action items (checklist).
+      5. The legal tone explanation (why are they asking this?).
+      
+      Respond in ${lang}.`;
+
+    let contentParts: any[] = [];
+    if (typeof input === 'string') {
+        contentParts = [{ text: `${promptText}\n\nText content: "${input}"` }];
+    } else {
+        contentParts = [
+            { inlineData: { mimeType: input.mimeType, data: input.data } },
+            { text: promptText }
+        ];
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: contentParts,
+      config: {
+        systemInstruction: getSystemInstruction(lang),
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            missingEvidence: { type: Type.ARRAY, items: { type: Type.STRING } },
+            severity: { type: Type.STRING, enum: ["low", "medium", "high"] },
+            actionItems: { type: Type.ARRAY, items: { type: Type.STRING } },
+            legalTone: { type: Type.STRING }
+          },
+          required: ["summary", "missingEvidence", "severity", "actionItems", "legalTone"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from AI");
+    return JSON.parse(text) as RFEAnalysis;
+  } catch (error) {
+    console.error("Gemini RFE Error:", error);
+    throw new Error("Failed to analyze RFE. Please try again.");
+  }
+};
+
+export const generateRFEResponse = async (
+    input: GeminiInput, 
+    analysis: RFEAnalysis, 
+    lang: Language = 'en',
+    caseNumber?: string
+): Promise<string> => {
+  try {
+    const promptIntro = `
+      You are an expert immigration attorney assistant. 
+      Based on the provided USCIS RFE document/text and our analysis of it, draft a formal, professional response letter in ENGLISH (USCIS requires English).
+      However, if the user language is not English, provide a brief summary in ${lang} at the very top before the formal letter.
+      
+      Analysis Summary: ${analysis.summary}
+      Missing Evidence to Submit: ${analysis.missingEvidence.join(', ')}
+      Case Number: ${caseNumber || '[Case Number]'}
+      
+      Requirements:
+      1. Use standard formal business letter formatting (Date, address to USCIS, Re: Case Number).
+      2. Include placeholders for [Petitioner Name], [Beneficiary Name] clearly marked. Use ${caseNumber || '[Case Number]'} for the case number.
+      3. State clearly that this is a response to the Request for Evidence dated [Date].
+      4. For each missing item, write a paragraph explaining that the evidence is attached. Use strong legal reasoning (e.g., "Please find attached [Document X], which demonstrates [Requirement Y] pursuant to 8 CFR...").
+      5. Tone: Respectful, confident, organized.
+      6. Return ONLY the letter text.
+    `;
+    
+    let contentParts: any[] = [];
+    if (typeof input === 'string') {
+        contentParts = [{ text: `${promptIntro}\n\nOriginal RFE Text: "${input.substring(0, 2000)}..."` }];
+    } else {
+         contentParts = [
+            { inlineData: { mimeType: input.mimeType, data: input.data } },
+            { text: promptIntro }
+        ];
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-pro-preview",
+      contents: contentParts,
+    });
+    
+    return response.text || "Could not generate letter.";
+  } catch (error) {
+    console.error("Gemini Letter Gen Error:", error);
+    throw new Error("Failed to generate response letter.");
+  }
+};
+
+export const generateCoverLetter = async (
+    params: { 
+        petitioner: string, 
+        petitionerStatus: string, 
+        beneficiary: string, 
+        formType: string, 
+        serviceCenter: string,
+        evidenceCategories: { category: string, items: string[] }[]
+    },
+    lang: Language = 'en'
+): Promise<string> => {
+    try {
+        const evidenceText = params.evidenceCategories.map((cat, index) => {
+            return `Exhibit ${String.fromCharCode(65 + index)}: ${cat.category}\n` + 
+                   cat.items.map(item => `   - ${item}`).join('\n');
+        }).join('\n\n');
+
+        const prompt = `Act as a senior immigration attorney. Draft a comprehensive Cover Letter for a ${params.formType} petition to USCIS.
+
+        **Details**:
+        - Service Center/Address: ${params.serviceCenter}
+        - Petitioner: ${params.petitioner} (${params.petitionerStatus})
+        - Beneficiary: ${params.beneficiary}
+        
+        **Evidence Structure**:
+        ${evidenceText}
+
+        **Rules**:
+        1. Format strictly as a formal legal letter.
+        2. Header: Current Date, To [Service Center Address].
+        3. RE: ${params.formType} Petition on behalf of [Beneficiary].
+        4. Opening: Formal request to adjudicate the attached petition.
+        5. Body: 2-3 sentences verifying the Petitioner's status and the qualifying relationship (e.g., "Petitioner is a ${params.petitionerStatus} and the spouse of Beneficiary...").
+        6. **INDEX OF DOCUMENTS**: Use the provided Exhibits structure (Exhibit A, Exhibit B, etc.). List items clearly.
+        7. Closing: "Copies of documents submitted are exact photocopies of unaltered original documents..." (Standard USCIS disclaimer).
+        8. Language: English (Official). If user language is ${lang} and not English, add a [Translated Summary] block at the very top.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: prompt,
+            config: {
+                systemInstruction: getSystemInstruction(lang)
+            }
+        });
+        return response.text || "Failed to generate letter";
+    } catch(e) {
+        console.error("Letter Gen Error", e);
+        throw new Error("Could not generate cover letter.");
+    }
+}
+
+export const translateDocument = async (
+    input: GeminiInput, 
+    targetLang: string
+): Promise<string> => {
+    try {
+        const promptText = `
+        Translate the following document content into ${targetLang}.
+        
+        Rules:
+        1. Maintain the original formatting structure as much as possible (headings, lists).
+        2. Treat this as a formal document. Use professional, accurate terminology suitable for immigration purposes.
+        3. If there are illegible parts, mark them as [Illegible].
+        4. If there are signatures, mark them as [Signature].
+        5. Return ONLY the translated text.
+        `;
+
+        let contentParts: any[] = [];
+        if (typeof input === 'string') {
+            contentParts = [{ text: `${promptText}\n\nContent:\n${input}` }];
+        } else {
+            contentParts = [
+                { inlineData: { mimeType: input.mimeType, data: input.data } },
+                { text: promptText }
+            ];
+        }
+
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: contentParts,
+        });
+
+        return response.text || "Translation failed.";
+    } catch (e) {
+        console.error("Translation Error", e);
+        throw new Error("Could not translate document.");
+    }
+};
+
+export const predictCaseTimeline = async (
+    caseDetails: { formType: string, serviceCenter: string, priorityDate: string },
+    lang: Language = 'en'
+): Promise<PredictionResult> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: `Predict the estimated approval date for this immigration case based on typical processing times.
+            
+            Form: ${caseDetails.formType}
+            Service Center: ${caseDetails.serviceCenter}
+            Filed Date: ${caseDetails.priorityDate}
+            
+            Return JSON:
+            - estimatedDate: string (Month Year)
+            - confidence: number (0-100)
+            - factors: list of strings (why this date?)
+            - recommendation: string (advice in ${lang})
+            `,
+            config: {
+                systemInstruction: getSystemInstruction(lang),
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        estimatedDate: { type: Type.STRING },
+                        confidence: { type: Type.NUMBER },
+                        factors: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        recommendation: { type: Type.STRING }
+                    },
+                    required: ["estimatedDate", "confidence", "factors", "recommendation"]
+                }
+            }
+        });
+        
+        const text = response.text;
+        if (!text) throw new Error("No response");
+        return JSON.parse(text) as PredictionResult;
+    } catch(e) {
+        console.error("Prediction Error", e);
+        throw new Error("Could not predict case timeline.");
+    }
+}
+
+export const getFieldHelp = async (question: string, context?: string, lang: Language = 'en'): Promise<FormFieldHelp> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `The user is stuck on this USCIS form question: "${question}".
+      Context provided by user: "${context || 'None'}".
+      
+      Provide:
+      1. Plain ${lang} translation of the legalese.
+      2. Common risks/traps associated with this question (e.g., what counts as an 'arrest').
+      3. A safe, realistic example of how to answer (or what format is expected).`,
+      config: {
+        systemInstruction: getSystemInstruction(lang),
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            plainEnglish: { type: Type.STRING },
+            risks: { type: Type.ARRAY, items: { type: Type.STRING } },
+            example: { type: Type.STRING }
+          },
+          required: ["plainEnglish", "risks", "example"]
+        }
+      }
+    });
+
+     const text = response.text;
+    if (!text) throw new Error("No response from AI");
+    return JSON.parse(text) as FormFieldHelp;
+  } catch (error) {
+    console.error("Gemini Form Help Error:", error);
+    return {
+      plainEnglish: "We couldn't load the AI help right now.",
+      risks: ["Please consult an attorney if you are unsure."],
+      example: "N/A"
+    };
+  }
+};
+
+export const validateFormInput = async (
+  fieldLabel: string, 
+  value: string, 
+  formContext: string,
+  lang: Language = 'en'
+): Promise<ValidationResult> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Act as a strict USCIS Immigration Officer reviewing a form application. 
+      Validate the following input field.
+      
+      Field Name: "${fieldLabel}"
+      User Input: "${value}"
+      Form Context: "${formContext}"
+
+      Rules:
+      1. DATES: STRICTLY enforce MM/DD/YYYY format (e.g., 10/25/2023). If the format is wrong (e.g., "2023-10-25" or "Oct 25"), mark as ERROR and provide the corrected MM/DD/YYYY in the 'suggestion' field.
+      2. REQUIRED: If User Input is empty/blank, mark as ERROR with message "This field is required". Exception: "Date To" can be "Present" or left blank if context implies current residence.
+      3. ADDRESSES: Must be physical addresses (No PO Boxes). Must contain Street Number, Name, City, State, Zip.
+      4. LOGIC: "Date To" cannot be before "Date From". If "Date To" is empty, check if they still live there (Suggestion: "Present").
+      5. LEGAL: Explanations must be detailed (Who, What, Where, When). Avoid "I don't know".
+
+      Return JSON:
+      - isValid: boolean
+      - message: "Short, direct feedback to the user in ${lang}."
+      - suggestion: "Exact corrected value or specific action in ${lang}."
+      - severity: "warning" | "error" | "success"
+      `,
+      config: {
+        systemInstruction: getSystemInstruction(lang),
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            isValid: { type: Type.BOOLEAN },
+            message: { type: Type.STRING },
+            suggestion: { type: Type.STRING },
+            severity: { type: Type.STRING, enum: ["warning", "error", "success"] }
+          },
+          required: ["isValid", "message", "suggestion", "severity"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from AI");
+    return JSON.parse(text) as ValidationResult;
+  } catch (error) {
+    console.error("Gemini Validation Error:", error);
+    return {
+      isValid: true, // Default to true if AI fails to avoid blocking user
+      message: "Could not validate at this time.",
+      severity: "warning"
+    };
+  }
+};
+
+export const searchCaseLaw = async (query: string, lang: Language = 'en'): Promise<CaseLawResult[]> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: `Act as a legal researcher specialized in US Immigration Law (BIA, 9th Circuit, Supreme Court).
+            Search query: "${query}"
+            
+            Identify 3-4 highly relevant, real legal precedents (Cases) that relate to this query.
+            If the query is vague, find the most foundational cases.
+            
+            Return JSON array of cases:
+            - caseName: e.g., "Matter of Dhanasar"
+            - citation: e.g., "26 I&N Dec. 884 (AAO 2016)"
+            - year: string
+            - relevanceScore: number (0-100) based on query match
+            - summary: Brief legal summary (2 sentences)
+            - applicationToUser: "Plain English" explanation of why this matters to an applicant in ${lang}.
+            - tags: [ "Asylum", "DUI", "Good Moral Character", etc. ]
+            `,
+            config: {
+                systemInstruction: getSystemInstruction(lang),
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            caseName: { type: Type.STRING },
+                            citation: { type: Type.STRING },
+                            year: { type: Type.STRING },
+                            relevanceScore: { type: Type.NUMBER },
+                            summary: { type: Type.STRING },
+                            applicationToUser: { type: Type.STRING },
+                            tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+                        },
+                        required: ["caseName", "citation", "year", "relevanceScore", "summary", "applicationToUser", "tags"]
+                    }
+                }
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No response");
+        return JSON.parse(text) as CaseLawResult[];
+    } catch (e) {
+        console.error("Case Law Error", e);
+        return [];
+    }
+};
+
+export const getInterviewQuestion = async (
+    history: {role: string, text: string}[], 
+    interviewType: string,
+    lang: Language = 'en'
+): Promise<string> => {
+    try {
+        const chat = ai.chats.create({
+            model: "gemini-3-flash-preview",
+            config: {
+                systemInstruction: `You are a professional, slightly strict, but fair USCIS Immigration Officer conducting a ${interviewType} interview.
+                Your goal is to verify the applicant's eligibility and detect fraud.
+                Ask ONE question at a time. Wait for the user's response.
+                Start the conversation if history is empty.
+                If the user answers, follow up logically or move to the next standard question.
+                Keep questions short and spoken-style.
+                Language: ${lang === 'es' ? 'Spanish' : 'English'} (USCIS interviews are usually English, but use ${lang} if simulating an interpreter scenario or requested).
+                `,
+            },
+            history: history.map(h => ({
+                role: h.role,
+                parts: [{ text: h.text }]
+            }))
+        });
+
+        const response = await chat.sendMessage({ message: "Continue the interview or start if new." });
+        return response.text || "Could you please repeat that?";
+    } catch (e) {
+        console.error("Interview Error", e);
+        return "Let's move to the next topic.";
+    }
+};
+
+export const getInterviewFeedback = async (
+    history: {role: string, text: string}[],
+    lang: Language = 'en'
+): Promise<InterviewFeedback> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: `Analyze this transcript of a simulated USCIS Immigration Interview.
+            
+            Transcript:
+            ${JSON.stringify(history)}
+            
+            Provide a feedback report card for the applicant in ${lang}.
+            
+            Return JSON:
+            - score: number (0-100)
+            - strengths: list of strings
+            - weaknesses: list of strings
+            - redFlags: list of potential denial reasons detected (if any)
+            - confidenceTips: Advice for the actual interview
+            `,
+            config: {
+                systemInstruction: getSystemInstruction(lang),
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        score: { type: Type.NUMBER },
+                        strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        redFlags: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        confidenceTips: { type: Type.STRING }
+                    },
+                    required: ["score", "strengths", "weaknesses", "redFlags", "confidenceTips"]
+                }
+            }
+        });
+        
+        const text = response.text;
+        if (!text) throw new Error("No response");
+        return JSON.parse(text) as InterviewFeedback;
+    } catch (e) {
+        console.error("Feedback Error", e);
+        throw new Error("Could not generate feedback.");
+    }
+};
+
+export const getStrategyStream = async (history: {role: string, parts: {text: string}[]}[], message: string, lang: Language = 'en') => {
+    const chat = ai.chats.create({
+        model: "gemini-3-pro-preview", 
+        config: {
+            systemInstruction: getSystemInstruction(lang) + " Focus on strategic options, pros/cons, timelines, and comparing visa types.",
+        },
+        history: history.map(h => ({
+            role: h.role,
+            parts: h.parts
+        }))
+    });
+
+    return await chat.sendMessageStream({ message });
+}
+
+// --- Support Agent Prompts & Tools ---
+
+const getSupportSystemInstruction = (lang: Language) => `
+You are a helpful voice & text assistant for ImmiGuide.
+You MUST use the provided SITE CONTENTS to answer questions. 
+If the user asks about an attorney (e.g., Sarah Chen), you MUST find them in the list and provide details.
+
+**NAVIGATION RULES**:
+1. If the user asks to go to a section, use the 'changeView' tool (Voice) or append '[[NAVIGATE:view_id]]' (Text).
+2. Mappings:
+   - "Find a lawyer" / "Attorney" / "Sarah Chen" -> [[NAVIGATE:marketplace]]
+   - "Analyze letter" / "RFE" -> [[NAVIGATE:rfe]]
+   - "Form help" / "I-130" -> [[NAVIGATE:forms]]
+   - "Documents" / "Vault" -> [[NAVIGATE:documents]]
+   - "Letters" / "Write letter" -> [[NAVIGATE:letters]]
+   - "Translate" / "Translations" -> [[NAVIGATE:translations]]
+   - "Strategy" / "Advice" -> [[NAVIGATE:strategy]]
+   - "Case Law" / "Precedents" -> [[NAVIGATE:caselaw]]
+   - "Interview" / "Practice" -> [[NAVIGATE:interview]]
+   - "Home" / "Dashboard" -> [[NAVIGATE:dashboard]]
+
+**SITE CONTENTS**:
+${MOCK_SITE_CONTENTS}
+
+Rules:
+- Respond in ${lang === 'zh' ? 'Chinese' : lang === 'es' ? 'Spanish' : lang === 'ar' ? 'Arabic' : 'English'}.
+- Keep answers short (under 100 words).
+- If navigating, say "Taking you there..." and trigger the navigation.
+`;
+
+// Tool definition for Voice Mode (Live API)
+const navigationTool: FunctionDeclaration = {
+  name: 'changeView',
+  description: 'Navigate the user to a specific screen in the application. Use this when the user asks to go somewhere or asks for a feature like "finding a lawyer".',
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      view: {
+        type: Type.STRING,
+        description: "The view ID to navigate to.",
+        enum: ['dashboard', 'forms', 'documents', 'letters', 'rfe', 'strategy', 'marketplace', 'translations', 'caselaw', 'interview']
+      },
+    },
+    required: ['view'],
+  },
+};
+
+export const getSupportChatStream = async (history: {role: string, parts: {text: string}[]}[], message: string, lang: Language = 'en') => {
+    const chat = ai.chats.create({
+        model: "gemini-3-flash-preview", 
+        config: {
+            systemInstruction: getSupportSystemInstruction(lang),
+        },
+        history: history.map(h => ({
+            role: h.role,
+            parts: h.parts
+        }))
+    });
+
+    return await chat.sendMessageStream({ message });
+}
+
+// --- Live Voice API ---
+
+export const connectToLiveSession = async (
+  lang: Language,
+  callbacks: {
+    onOpen: () => void;
+    onMessage: (message: any) => void;
+    onClose: (event: CloseEvent) => void;
+    onError: (error: ErrorEvent) => void;
+  }
+) => {
+  return await ai.live.connect({
+    model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+    callbacks: {
+      onopen: callbacks.onOpen,
+      onmessage: callbacks.onMessage,
+      onclose: callbacks.onClose,
+      onerror: callbacks.onError,
+    },
+    config: {
+      responseModalities: [Modality.AUDIO],
+      speechConfig: {
+        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+      },
+      systemInstruction: getSupportSystemInstruction(lang),
+      tools: [{ functionDeclarations: [navigationTool] }],
+    },
+  });
+};

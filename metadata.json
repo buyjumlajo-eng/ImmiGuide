@@ -1,0 +1,7 @@
+{
+  "name": "ImmiGuide - AI Immigration Assistant",
+  "description": "A comprehensive AI-powered platform for US immigration applicants. Features smart form assistance, RFE decoding, strategic advice, and anxiety-reducing case tracking.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

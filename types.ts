@@ -1,0 +1,105 @@
+
+export type Language = 'en' | 'es' | 'zh' | 'ar';
+
+export type SubscriptionTier = 'free' | 'one_form' | 'monthly' | 'annual';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  subscriptionTier: SubscriptionTier;
+}
+
+export interface RFEAnalysis {
+  summary: string;
+  missingEvidence: string[];
+  severity: 'low' | 'medium' | 'high';
+  actionItems: string[];
+  legalTone: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: Date;
+}
+
+export interface FormFieldHelp {
+  plainEnglish: string;
+  risks: string[];
+  example: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  message: string;
+  suggestion?: string;
+  severity: 'warning' | 'error' | 'success';
+}
+
+export interface CaseStat {
+  daysPending: number;
+  averageDays: number;
+  percentile: number;
+  status: 'Normal' | 'Delayed' | 'Critical';
+}
+
+export interface Attorney {
+  id: string;
+  name: string;
+  firm: string;
+  image: string;
+  specialties: string[];
+  languages: string[];
+  rating: number;
+  reviewCount: number;
+  successRate: number;
+  priceStart: number;
+  isVerified: boolean;
+  nextAvailable: string;
+}
+
+export interface StoredDocument {
+  id: string;
+  name: string;
+  type: string;
+  uploadDate: Date;
+  status: 'scanning' | 'verified' | 'issue';
+  ocrData?: string;
+  previewUrl?: string;
+}
+
+export interface PredictionResult {
+  estimatedDate: string;
+  confidence: number;
+  factors: string[];
+  recommendation: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  type: 'info' | 'warning' | 'success';
+  date: Date;
+}
+
+export interface CaseLawResult {
+  caseName: string;
+  citation: string;
+  year: string;
+  relevanceScore: number;
+  summary: string;
+  applicationToUser: string;
+  tags: string[];
+}
+
+export interface InterviewFeedback {
+  score: number;
+  strengths: string[];
+  weaknesses: string[];
+  redFlags: string[];
+  confidenceTips: string;
+}
