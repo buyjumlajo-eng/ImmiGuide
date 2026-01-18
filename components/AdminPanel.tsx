@@ -10,12 +10,16 @@ import {
   X,
   AlertTriangle,
   Info,
-  CheckCircle
+  CheckCircle,
+  FileSignature,
+  Calendar,
+  Check,
+  Briefcase
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
-  const { attorneys, announcements, addAttorney, deleteAttorney, addAnnouncement, deleteAnnouncement } = useData();
-  const [activeTab, setActiveTab] = useState<'attorneys' | 'announcements'>('announcements');
+  const { attorneys, announcements, applications, addAttorney, deleteAttorney, addAnnouncement, deleteAnnouncement, approveApplication, rejectApplication } = useData();
+  const [activeTab, setActiveTab] = useState<'attorneys' | 'announcements' | 'applications'>('applications');
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Simple form state for adding attorney
@@ -64,20 +68,85 @@ export const AdminPanel: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b border-slate-200">
+      <div className="flex gap-4 border-b border-slate-200 overflow-x-auto">
+          <button 
+            onClick={() => setActiveTab('applications')}
+            className={`pb-4 px-2 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'applications' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          >
+              <FileSignature className="w-4 h-4" /> Partner Requests 
+              {applications.length > 0 && (
+                  <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{applications.length}</span>
+              )}
+          </button>
           <button 
             onClick={() => setActiveTab('announcements')}
-            className={`pb-4 px-2 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'announcements' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            className={`pb-4 px-2 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'announcements' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
           >
               <Megaphone className="w-4 h-4" /> Global Announcements
           </button>
           <button 
             onClick={() => setActiveTab('attorneys')}
-            className={`pb-4 px-2 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'attorneys' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            className={`pb-4 px-2 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'attorneys' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
           >
               <Users className="w-4 h-4" /> Attorney Database
           </button>
       </div>
+
+      {activeTab === 'applications' && (
+          <div className="space-y-4">
+              {applications.length === 0 ? (
+                  <div className="text-center p-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400">
+                      <CheckCircle className="w-12 h-12 mx-auto mb-2 opacity-30 text-green-500" />
+                      <p>All caught up! No pending applications.</p>
+                  </div>
+              ) : (
+                  applications.map(app => (
+                      <div key={app.id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col md:flex-row justify-between gap-6">
+                          <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="font-bold text-lg text-slate-900">{app.firstName} {app.lastName}</h3>
+                                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
+                                      app.partnershipModel === 'lead_gen' ? 'bg-blue-100 text-blue-700' :
+                                      app.partnershipModel === 'subscription' ? 'bg-purple-100 text-purple-700' :
+                                      'bg-green-100 text-green-700'
+                                  }`}>
+                                      {app.partnershipModel.replace('_', ' ')}
+                                  </span>
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 text-sm text-slate-600 mb-4">
+                                  <div className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-slate-400" /> {app.firmName}</div>
+                                  <div className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-slate-400" /> Bar: {app.barState} #{app.barNumber}</div>
+                                  <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-slate-400" /> Admitted: {app.yearAdmitted}</div>
+                                  <div className="flex items-center gap-2 text-slate-500">Submitted: {app.submittedDate.toLocaleDateString()}</div>
+                              </div>
+                              <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-700 italic border border-slate-100 mb-3">
+                                  "{app.bio}"
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                  {app.specialties.map(s => (
+                                      <span key={s} className="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded border border-slate-200">{s}</span>
+                                  ))}
+                              </div>
+                          </div>
+                          <div className="flex md:flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 shrink-0">
+                              <button 
+                                onClick={() => approveApplication(app.id)}
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-green-700 flex items-center justify-center gap-2 shadow-sm"
+                              >
+                                  <Check className="w-4 h-4" /> Approve
+                              </button>
+                              <button 
+                                onClick={() => rejectApplication(app.id)}
+                                className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200 flex items-center justify-center gap-2"
+                              >
+                                  <X className="w-4 h-4" /> Reject
+                              </button>
+                          </div>
+                      </div>
+                  ))
+              )}
+          </div>
+      )}
 
       {activeTab === 'announcements' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

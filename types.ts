@@ -61,6 +61,22 @@ export interface Attorney {
   nextAvailable: string;
 }
 
+export interface AttorneyApplication {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  firmName: string;
+  barState: string;
+  barNumber: string;
+  yearAdmitted: string;
+  specialties: string[];
+  bio: string;
+  partnershipModel: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedDate: Date;
+}
+
 export interface StoredDocument {
   id: string;
   name: string;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Attorney } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
+import { ViewState } from '../App';
 import { 
   Search, 
   Filter, 
@@ -12,10 +13,16 @@ import {
   CheckCircle,
   AlertTriangle,
   Calendar,
-  Sparkles
+  Sparkles,
+  Gavel,
+  ArrowRight
 } from 'lucide-react';
 
-export const AttorneyMarketplace: React.FC = () => {
+interface AttorneyMarketplaceProps {
+  onViewChange?: (view: ViewState) => void;
+}
+
+export const AttorneyMarketplace: React.FC<AttorneyMarketplaceProps> = ({ onViewChange }) => {
   const { t, language, dir } = useLanguage();
   const { attorneys } = useData();
   const [specialtyFilter, setSpecialtyFilter] = useState('All');
@@ -117,6 +124,27 @@ export const AttorneyMarketplace: React.FC = () => {
                 ×
             </button>
         </div>
+      )}
+
+      {/* Attorney Recruitment CTA */}
+      {onViewChange && (
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between shadow-lg">
+              <div className="flex items-center gap-4 mb-4 md:mb-0">
+                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                      <Gavel className="w-6 h-6 text-blue-300" />
+                  </div>
+                  <div>
+                      <h3 className="font-bold text-lg">Are you an Immigration Attorney?</h3>
+                      <p className="text-sm text-slate-300">Join our partner network. Get pre-screened leads and manage cases efficiently.</p>
+                  </div>
+              </div>
+              <button 
+                onClick={() => onViewChange('attorney-signup')}
+                className="bg-white text-slate-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-blue-50 transition-colors flex items-center gap-2 whitespace-nowrap"
+              >
+                  Apply to Partner <ArrowRight className="w-4 h-4" />
+              </button>
+          </div>
       )}
 
       {/* Grid */}

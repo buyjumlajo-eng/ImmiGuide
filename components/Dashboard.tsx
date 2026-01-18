@@ -128,9 +128,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
             <div className="relative pt-6 pb-2">
             {/* Progress Bar Background */}
             <div className="h-4 bg-slate-100 rounded-full overflow-hidden">
-                {/* Average Marker */}
-                <div className="absolute top-0 bottom-0 border-l-2 border-dashed border-slate-400 h-full" style={{ left: '60%' }}></div>
-                
                 {/* User Progress */}
                 <div className={`h-full bg-blue-600 rounded-full relative transition-all duration-1000 ease-out`} style={{ width: '45%' }}>
                     <div className={`absolute ${dir === 'rtl' ? 'left-0' : 'right-0'} top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-blue-600 rounded-full shadow-sm`}></div>

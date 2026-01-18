@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Attorney, Announcement } from '../types';
+import { Attorney, Announcement, AttorneyApplication } from '../types';
 
-// Initial Mock Data (moved from components)
+// Initial Mock Data
 const INITIAL_ATTORNEYS: Attorney[] = [
   {
     id: '1',
@@ -71,13 +71,35 @@ const INITIAL_ANNOUNCEMENTS: Announcement[] = [
     }
 ];
 
+const INITIAL_APPLICATIONS: AttorneyApplication[] = [
+    {
+        id: 'app_1',
+        firstName: 'David',
+        lastName: 'Kim',
+        email: 'david@kimlegal.com',
+        firmName: 'Kim Immigration Law',
+        barState: 'NY',
+        barNumber: '554433',
+        yearAdmitted: '2018',
+        specialties: ['Student Visas', 'Employment Visas'],
+        bio: 'Dedicated to helping students and researchers.',
+        partnershipModel: 'lead_gen',
+        status: 'pending',
+        submittedDate: new Date()
+    }
+];
+
 interface DataContextType {
   attorneys: Attorney[];
   announcements: Announcement[];
+  applications: AttorneyApplication[];
   addAttorney: (attorney: Omit<Attorney, 'id'>) => void;
   deleteAttorney: (id: string) => void;
   addAnnouncement: (announcement: Omit<Announcement, 'id' | 'date'>) => void;
   deleteAnnouncement: (id: string) => void;
+  submitApplication: (app: Omit<AttorneyApplication, 'id' | 'status' | 'submittedDate'>) => void;
+  approveApplication: (id: string) => void;
+  rejectApplication: (id: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -93,6 +115,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return saved ? JSON.parse(saved).map((a: any) => ({...a, date: new Date(a.date)})) : INITIAL_ANNOUNCEMENTS;
   });
 
+  const [applications, setApplications] = useState<AttorneyApplication[]>(() => {
+      const saved = localStorage.getItem('immi_data_applications');
+      return saved ? JSON.parse(saved).map((a: any) => ({...a, submittedDate: new Date(a.submittedDate)})) : INITIAL_APPLICATIONS;
+  });
+
   // Persistence
   useEffect(() => {
     localStorage.setItem('immi_data_attorneys', JSON.stringify(attorneys));
@@ -101,6 +128,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     localStorage.setItem('immi_data_announcements', JSON.stringify(announcements));
   }, [announcements]);
+
+  useEffect(() => {
+    localStorage.setItem('immi_data_applications', JSON.stringify(applications));
+  }, [applications]);
 
   const addAttorney = (data: Omit<Attorney, 'id'>) => {
       const newAttorney = { ...data, id: Date.now().toString() };
@@ -124,14 +155,56 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setAnnouncements(prev => prev.filter(a => a.id !== id));
   };
 
+  const submitApplication = (appData: Omit<AttorneyApplication, 'id' | 'status' | 'submittedDate'>) => {
+      const newApp: AttorneyApplication = {
+          ...appData,
+          id: `app_${Date.now()}`,
+          status: 'pending',
+          submittedDate: new Date()
+      };
+      setApplications(prev => [...prev, newApp]);
+  };
+
+  const approveApplication = (id: string) => {
+      const app = applications.find(a => a.id === id);
+      if (!app) return;
+
+      // Convert Application to Attorney Listing
+      const newAttorney: Attorney = {
+          id: Date.now().toString(),
+          name: `${app.firstName} ${app.lastName}`,
+          firm: app.firmName,
+          image: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&q=80&w=200&h=200', // Default placeholder
+          specialties: app.specialties,
+          languages: ['English'], // Default, user can edit later
+          rating: 5.0, // New listings start high
+          reviewCount: 0,
+          successRate: 100,
+          priceStart: app.partnershipModel === 'lead_gen' ? 150 : 250, // Guess based on model
+          isVerified: true,
+          nextAvailable: 'Available Now'
+      };
+
+      setAttorneys(prev => [...prev, newAttorney]);
+      setApplications(prev => prev.filter(a => a.id !== id));
+  };
+
+  const rejectApplication = (id: string) => {
+      setApplications(prev => prev.filter(a => a.id !== id));
+  };
+
   return (
     <DataContext.Provider value={{ 
         attorneys, 
         announcements, 
+        applications,
         addAttorney, 
         deleteAttorney, 
         addAnnouncement, 
-        deleteAnnouncement 
+        deleteAnnouncement,
+        submitApplication,
+        approveApplication,
+        rejectApplication
     }}>
       {children}
     </DataContext.Provider>

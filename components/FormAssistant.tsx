@@ -35,9 +35,9 @@ const SmartInput: React.FC<SmartFieldProps> = ({
 }) => {
   const { dir } = useLanguage();
   return (
-    <div className={`mb-4 group relative transition-all duration-500 ${isActive ? 'scale-[1.02]' : ''}`}>
+    <div className={`mb-4 group relative transition-all duration-500 ${isActive ? 'scale-[1.02] translate-x-1' : ''}`}>
       <label htmlFor={id} className="block text-sm font-semibold mb-1.5 flex justify-between items-center transition-colors">
-        <span className={`flex items-center gap-2 ${isActive ? 'text-indigo-600' : 'text-slate-700'}`}>
+        <span className={`flex items-center gap-2 transition-colors duration-300 ${isActive ? 'text-indigo-600 font-bold' : 'text-slate-700'}`}>
             {label}
             {isActive && <Sparkles className="w-3 h-3 text-indigo-500 animate-pulse" />}
         </span>
@@ -56,7 +56,7 @@ const SmartInput: React.FC<SmartFieldProps> = ({
             ${validation?.severity === 'error' ? 'border-red-300 bg-red-50 focus:border-red-500' : 
               validation?.severity === 'warning' ? 'border-amber-300 bg-amber-50 focus:border-amber-500' :
               validation?.severity === 'success' ? 'border-green-300 bg-green-50 focus:border-green-500' :
-              isActive ? 'border-indigo-400 bg-indigo-50/30 ring-4 ring-indigo-100 shadow-lg shadow-indigo-100' :
+              isActive ? 'border-indigo-500 bg-indigo-50/50 ring-4 ring-indigo-100 shadow-xl shadow-indigo-100/50' :
               'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50'
             }`}
         />
@@ -88,9 +88,9 @@ const SmartTextArea: React.FC<SmartFieldProps> = ({
   }) => {
     const { dir } = useLanguage();
     return (
-      <div className={`mb-4 group transition-all duration-500 ${isActive ? 'scale-[1.02]' : ''}`}>
+      <div className={`mb-4 group transition-all duration-500 ${isActive ? 'scale-[1.02] translate-x-1' : ''}`}>
         <label htmlFor={id} className="block text-sm font-semibold mb-1.5 flex justify-between items-center transition-colors">
-            <span className={`flex items-center gap-2 ${isActive ? 'text-indigo-600' : 'text-slate-700'}`}>
+            <span className={`flex items-center gap-2 transition-colors duration-300 ${isActive ? 'text-indigo-600 font-bold' : 'text-slate-700'}`}>
                 {label}
                 {isActive && <Sparkles className="w-3 h-3 text-indigo-500 animate-pulse" />}
             </span>
@@ -107,7 +107,7 @@ const SmartTextArea: React.FC<SmartFieldProps> = ({
           className={`w-full p-3 rounded-xl border-2 transition-all duration-300 outline-none resize-none
             ${validation?.severity === 'error' ? 'border-red-300 bg-red-50 focus:border-red-500' : 
               validation?.severity === 'warning' ? 'border-amber-300 bg-amber-50 focus:border-amber-500' :
-              isActive ? 'border-indigo-400 bg-indigo-50/30 ring-4 ring-indigo-100 shadow-lg shadow-indigo-100' :
+              isActive ? 'border-indigo-500 bg-indigo-50/50 ring-4 ring-indigo-100 shadow-xl shadow-indigo-100/50' :
               'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50'
             }`}
         />
@@ -158,6 +158,7 @@ export const FormAssistant: React.FC = () => {
         contextHint: "USCIS requires where you physically slept. PO Boxes are generally rejected for physical address." 
     },
     city: { fullQuestion: "City or Town", contextHint: "" },
+    state: { fullQuestion: "State or Province", contextHint: "" },
     zip: { fullQuestion: "Zip Code", contextHint: "" },
     dateFrom: { fullQuestion: "Date Residence Began", contextHint: "Check for gaps with previous addresses." },
     dateTo: { fullQuestion: "Date Residence Ended", contextHint: "Use 'Present' or leave blank if you still live here." },
@@ -385,21 +386,25 @@ export const FormAssistant: React.FC = () => {
       <div className="w-full lg:w-96 flex-shrink-0 flex flex-col gap-4 order-1 lg:order-2 mb-6 lg:mb-0">
         
         {/* Helper Card */}
-        <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl flex-1 flex flex-col transition-all duration-300 border-2 border-indigo-500/30 ring-4 ring-indigo-500/10 min-h-[300px] lg:min-h-0">
+        <div className={`bg-slate-900 rounded-2xl p-6 text-white shadow-xl flex-1 flex flex-col transition-all duration-500 border-2 ${activeFieldId ? 'border-indigo-400 shadow-indigo-500/20' : 'border-indigo-500/30'} ring-4 ring-indigo-500/10 min-h-[300px] lg:min-h-0`}>
             <div className="flex items-center justify-between mb-6 border-b border-slate-700 pb-4">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
-                        <Wand2 className="w-5 h-5 text-white" />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-500 ${activeFieldId ? 'bg-indigo-400 text-slate-900' : 'bg-indigo-500 text-white'}`}>
+                        <Wand2 className="w-5 h-5" />
                     </div>
                     <div>
                         <h3 className="font-bold text-lg leading-none">{t('aiHelper')}</h3>
-                        <p className="text-xs text-slate-400 mt-1">Smart Assistant</p>
+                        {activeFieldId && fieldDefinitions[activeFieldId] ? (
+                            <p className="text-xs text-indigo-300 mt-1 animate-in fade-in">Helping with: {fieldDefinitions[activeFieldId].fullQuestion.split(':')[0]}</p>
+                        ) : (
+                            <p className="text-xs text-slate-400 mt-1">Smart Assistant</p>
+                        )}
                     </div>
                 </div>
                 {activeFieldId && (
                     <div className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/20 rounded text-[10px] font-bold text-indigo-200 border border-indigo-500/30 animate-pulse">
                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-400"></div>
-                        LIVE CONTEXT
+                        ACTIVE
                     </div>
                 )}
             </div>
@@ -415,7 +420,7 @@ export const FormAssistant: React.FC = () => {
                     <p className="text-sm">{t('focusField')}</p>
                 </div>
             ) : (
-                <div className={`flex-1 overflow-y-auto custom-scrollbar p${dir === 'rtl' ? 'l' : 'r'}-2 space-y-6 animate-in slide-in-from-${dir === 'rtl' ? 'left' : 'right'}-2`}>
+                <div key={activeFieldId} className={`flex-1 overflow-y-auto custom-scrollbar p${dir === 'rtl' ? 'l' : 'r'}-2 space-y-6 animate-in slide-in-from-${dir === 'rtl' ? 'left' : 'right'}-2 fade-in duration-500`}>
                     {/* Translation */}
                     <div>
                         <div className="flex items-center gap-2 mb-2">

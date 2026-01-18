@@ -12,7 +12,8 @@ import { AdminPanel } from './components/AdminPanel';
 import { CaseLawExplorer } from './components/CaseLawExplorer';
 import { InterviewSimulator } from './components/InterviewSimulator';
 import { KnowledgeCenter } from './components/KnowledgeCenter';
-import { Paywall } from './components/Paywall'; // Import Paywall
+import { AttorneyOnboarding } from './components/AttorneyOnboarding'; // Import new component
+import { Paywall } from './components/Paywall'; 
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
@@ -21,7 +22,7 @@ import { Loader2 } from 'lucide-react';
 import { SubscriptionTier } from './types';
 
 // Updated view router state
-export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' | 'strategy' | 'marketplace' | 'translations' | 'admin' | 'caselaw' | 'interview' | 'knowledge';
+export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' | 'strategy' | 'marketplace' | 'translations' | 'admin' | 'caselaw' | 'interview' | 'knowledge' | 'attorney-signup';
 
 const InnerApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
@@ -31,6 +32,7 @@ const InnerApp: React.FC = () => {
   const hasAccess = (view: ViewState, tier: SubscriptionTier = 'free'): boolean => {
       // Admin always open (in this demo context)
       if (view === 'admin') return true;
+      if (view === 'attorney-signup') return true; // Public access
       
       // Free items
       if (view === 'dashboard' || view === 'marketplace' || view === 'knowledge') return true;
@@ -83,7 +85,7 @@ const InnerApp: React.FC = () => {
       case 'strategy':
         return <StrategyAdvisor />;
       case 'marketplace':
-        return <AttorneyMarketplace />;
+        return <AttorneyMarketplace onViewChange={setCurrentView} />;
       case 'translations':
         return <TranslationCenter />;
       case 'admin':
@@ -94,6 +96,8 @@ const InnerApp: React.FC = () => {
         return <InterviewSimulator />;
       case 'knowledge':
         return <KnowledgeCenter />;
+      case 'attorney-signup':
+        return <AttorneyOnboarding onViewChange={setCurrentView} />;
       default:
         return <Dashboard onViewChange={setCurrentView} />;
     }

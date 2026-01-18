@@ -103,6 +103,7 @@ export const CaseLawExplorer: React.FC = () => {
                           </div>
                           <h3 className="font-bold text-slate-900 mb-1 leading-tight">{item.caseName}</h3>
                           <p className="text-xs text-slate-500 font-mono mb-2">{item.citation}</p>
+                          <p className="text-xs text-slate-600 mb-3 line-clamp-2">{item.summary}</p>
                           <div className="flex flex-wrap gap-1">
                               {item.tags.slice(0, 2).map(t => (
                                   <span key={t} className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{t}</span>
