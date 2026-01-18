@@ -5,9 +5,22 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // --- Mock Site Contents for RAG ---
 // This data mirrors the application state to give the AI "Full Site Awareness"
+
+const MOCK_FORMS_DATA = `
+**OFFICIAL FORMS & FEES (Knowledge Center)**:
+- **I-130 Petition for Alien Relative**: $675 (Paper) / $625 (Online). Processing: 10-14 months.
+- **I-129F Petition for Alien Fiancé(e)**: $675. Processing: 12-16 months.
+- **I-485 Adjustment of Status** (Green Card): $1,440. Processing: 8-22 months.
+- **N-400 Application for Naturalization**: $710 (Online). Processing: 8-12 months.
+- **I-765 Employment Authorization**: $470 (Online). Processing: 3-7 months.
+- **I-131 Travel Document**: $630. Processing: 6-12 months.
+- **I-140 Alien Worker**: $715. Processing: 4-8 months.
+- **I-90 Replace Green Card**: $465. Processing: 8-10 months.
+`;
+
 const MOCK_ATTORNEYS_DATA = `
 **VERIFIED ATTORNEY DIRECTORY (Marketplace)**:
-1. **Sarah Chen, Esq.** (Chen & Associates). 
+1. **Sarah Chen, Esq.** (Chen & Associates Immigration). 
    - Specialties: Family Visas, RFE Response, Consular Processing. 
    - Languages: English, Chinese (Mandarin). 
    - Price: Starts at $250. Rating: 4.9/5.
@@ -63,7 +76,7 @@ You have access to the following internal application structure and data.
 
 7. **Strategy Advisor** ('strategy'): 
    - General Q&A, Visa comparison, Timeline estimation.
-   - Use this for "advice", "what visa do I need", "K1 vs CR1".
+   - Use this for "advice", "what visa do I need", "K1 vs CR1", "complex questions".
 
 8. **Attorney Marketplace** ('marketplace'): 
    - Directory of verified lawyers, booking consultations.
@@ -80,6 +93,8 @@ You have access to the following internal application structure and data.
 11. **Knowledge Center** ('knowledge'):
     - FREE official forms, fee schedules, and processing times.
     - Use this for "download I-130", "how much is the fee", "application cost", "processing time", "official forms".
+
+${MOCK_FORMS_DATA}
 
 ${MOCK_ATTORNEYS_DATA}
 
@@ -579,11 +594,23 @@ export const getStrategyStream = async (history: {role: string, parts: {text: st
 
 // --- Support Agent Prompts & Tools ---
 
-const getSupportSystemInstruction = (lang: Language) => `
+const getBaseSystemInstruction = (lang: Language) => `
 You are a helpful voice & text assistant for ImmiGuide, a US Immigration App.
 You MUST use the provided [NAVIGATION & FEATURES MAP] and [SITE CONTENTS] to answer questions. 
 
-**CRITICAL NAVIGATION RULES**:
+**SITE CONTENTS**:
+${MOCK_SITE_CONTENTS}
+
+**Response Rules**:
+- Respond in ${lang === 'zh' ? 'Chinese' : lang === 'es' ? 'Spanish' : lang === 'ar' ? 'Arabic' : 'English'}.
+- Keep answers concise (under 80 words) unless explaining a complex legal concept.
+- Be encouraging and supportive.
+`;
+
+const getTextSystemInstruction = (lang: Language) => `
+${getBaseSystemInstruction(lang)}
+
+**CRITICAL NAVIGATION RULES (TEXT MODE)**:
 1. You are an "App Controller". If the user asks for a feature, you must Navigate them there.
 2. When the user's intent matches a specific section, append the token [[NAVIGATE:view_id]] to the END of your response.
    - Example User: "I need a lawyer."
@@ -603,14 +630,14 @@ You MUST use the provided [NAVIGATION & FEATURES MAP] and [SITE CONTENTS] to ans
 
 3. If the user asks about a SPECIFIC ATTORNEY listed in the data (e.g., "Sarah Chen"), tell them you found her profile and Navigate to 'marketplace'.
    - Example: "Yes, Sarah Chen is available. Opening her profile... [[NAVIGATE:marketplace]]"
+`;
 
-**SITE CONTENTS**:
-${MOCK_SITE_CONTENTS}
+const getLiveSystemInstruction = (lang: Language) => `
+${getBaseSystemInstruction(lang)}
 
-**Response Rules**:
-- Respond in ${lang === 'zh' ? 'Chinese' : lang === 'es' ? 'Spanish' : lang === 'ar' ? 'Arabic' : 'English'}.
-- Keep answers concise (under 80 words) unless explaining a complex legal concept.
-- Be encouraging and supportive.
+**CRITICAL NAVIGATION RULES (VOICE MODE)**:
+1. Use the 'changeView' tool to navigate the user when they ask for a feature or specific section.
+2. Example: User says "I need a lawyer", you call changeView({view: 'marketplace'}).
 `;
 
 // Tool definition for Voice Mode (Live API)
@@ -632,9 +659,9 @@ const navigationTool: FunctionDeclaration = {
 
 export const getSupportChatStream = async (history: {role: string, parts: {text: string}[]}[], message: string, lang: Language = 'en') => {
     const chat = ai.chats.create({
-        model: "gemini-3-flash-preview", 
+        model: "gemini-3-pro-preview", 
         config: {
-            systemInstruction: getSupportSystemInstruction(lang),
+            systemInstruction: getTextSystemInstruction(lang),
         },
         history: history.map(h => ({
             role: h.role,
@@ -669,7 +696,7 @@ export const connectToLiveSession = async (
       speechConfig: {
         voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
       },
-      systemInstruction: getSupportSystemInstruction(lang),
+      systemInstruction: getLiveSystemInstruction(lang),
       tools: [{ functionDeclarations: [navigationTool] }],
     },
   });

@@ -14,11 +14,46 @@ import {
   Sparkles
 } from 'lucide-react';
 
+// --- Legal Definitions Dictionary ---
+const LEGAL_DEFINITIONS: Record<string, string> = {
+  "Physical Address": "The specific place where you actually sleep at night. USCIS does not accept P.O. Boxes or work addresses here.",
+  "Arrested": "Taken into custody by police or officials, handcuffed, or fingerprinted, even if released shortly after without charges.",
+  "Cited": "Given a ticket (like for speeding) or a notice to appear in court, even if you weren't taken to a police station.",
+  "Charged": "Formally accused of a crime by a government prosecutor.",
+  "Detained": "Held by an officer for questioning (e.g., at a traffic stop, border, or airport) where you were not free to leave.",
+  "Law enforcement official": "Any police officer, sheriff, immigration officer (CBP/ICE), or federal agent."
+};
+
+// --- LegalTerm Component ---
+const LegalTerm: React.FC<{ text: string }> = ({ text }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  // Case-insensitive lookup
+  const definitionKey = Object.keys(LEGAL_DEFINITIONS).find(k => k.toLowerCase() === text.toLowerCase());
+  const definition = definitionKey ? LEGAL_DEFINITIONS[definitionKey] : "No definition found.";
+
+  return (
+    <span 
+      className="relative inline-block border-b-2 border-dashed border-indigo-400 cursor-help hover:bg-indigo-50 text-indigo-900 transition-colors mx-0.5 rounded px-0.5"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {text}
+      {showTooltip && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-900 text-white text-xs p-3 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 pointer-events-none text-left leading-relaxed">
+          <div className="font-bold mb-1 text-indigo-300 border-b border-indigo-500/30 pb-1">{text}</div>
+          <div>{definition}</div>
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-900"></div>
+        </div>
+      )}
+    </span>
+  );
+};
+
 // --- Reusable Smart Input Components ---
 
 interface SmartFieldProps {
   id: string;
-  label: string;
+  label: string | React.ReactNode;
   value: string;
   onChange: (val: string) => void;
   onFocus: () => void;
@@ -243,7 +278,7 @@ export const FormAssistant: React.FC = () => {
         <div className="bg-slate-50 rounded-xl p-6 border border-slate-200 mb-8 transition-colors duration-500">
             <h3 className="font-bold text-slate-800 mb-4 flex items-center">
                 <div className={`w-6 h-6 bg-slate-200 rounded-full flex items-center justify-center text-xs ${dir === 'rtl' ? 'ml-2' : 'mr-2'}`}>1</div>
-                Current Physical Address
+                Current <LegalTerm text="Physical Address" />
             </h3>
             
             <SmartInput 
@@ -328,7 +363,7 @@ export const FormAssistant: React.FC = () => {
             
             <div className="mb-4">
                 <label className="block text-sm font-semibold text-slate-800 mb-2 leading-relaxed">
-                    Have you EVER been arrested, cited, charged, or detained for any reason by any law enforcement official?
+                    Have you EVER been <LegalTerm text="Arrested" />, <LegalTerm text="Cited" />, <LegalTerm text="Charged" />, or <LegalTerm text="Detained" /> for any reason by any <LegalTerm text="Law enforcement official" />?
                 </label>
                 <div className="flex flex-col sm:flex-row gap-4 mb-4">
                     <button 
@@ -386,7 +421,7 @@ export const FormAssistant: React.FC = () => {
       <div className="w-full lg:w-96 flex-shrink-0 flex flex-col gap-4 order-1 lg:order-2 mb-6 lg:mb-0">
         
         {/* Helper Card */}
-        <div className={`bg-slate-900 rounded-2xl p-6 text-white shadow-xl flex-1 flex flex-col transition-all duration-500 border-2 ${activeFieldId ? 'border-indigo-400 shadow-indigo-500/20' : 'border-indigo-500/30'} ring-4 ring-indigo-500/10 min-h-[300px] lg:min-h-0`}>
+        <div className={`bg-slate-900 rounded-2xl p-6 text-white shadow-xl flex-1 flex-col transition-all duration-500 border-2 ${activeFieldId ? 'border-indigo-400 shadow-indigo-500/20' : 'border-indigo-500/30'} ring-4 ring-indigo-500/10 min-h-[300px] lg:min-h-0 flex`}>
             <div className="flex items-center justify-between mb-6 border-b border-slate-700 pb-4">
                 <div className="flex items-center gap-2">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-500 ${activeFieldId ? 'bg-indigo-400 text-slate-900' : 'bg-indigo-500 text-white'}`}>
