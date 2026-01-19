@@ -230,29 +230,34 @@ export const generateCoverLetter = async (
 ): Promise<string> => {
     try {
         const evidenceText = params.evidenceCategories.map((cat, index) => {
-            return `Exhibit ${String.fromCharCode(65 + index)}: ${cat.category}\n` + 
+            return `Section/Exhibit ${String.fromCharCode(65 + index)}: ${cat.category}\n` + 
                    cat.items.map(item => `   - ${item}`).join('\n');
         }).join('\n\n');
 
-        const prompt = `Act as a senior immigration attorney. Draft a comprehensive Cover Letter for a ${params.formType} petition to USCIS.
+        const prompt = `Act as a senior immigration attorney. Draft a comprehensive legal letter or statement of type: "${params.formType}".
 
-        **Details**:
-        - Service Center/Address: ${params.serviceCenter}
-        - Petitioner: ${params.petitioner} (${params.petitionerStatus})
-        - Beneficiary: ${params.beneficiary}
+        **Key Parties**:
+        - Recipient/Address: ${params.serviceCenter}
+        - Sender/Petitioner/Writer: ${params.petitioner} (Status/Relation: ${params.petitionerStatus})
+        - Subject/Beneficiary/Applicant: ${params.beneficiary}
         
-        **Evidence Structure**:
+        **Content/Evidence to Include**:
         ${evidenceText}
 
-        **Rules**:
-        1. Format strictly as a formal legal letter.
-        2. Header: Current Date, To [Service Center Address].
-        3. RE: ${params.formType} Petition on behalf of [Beneficiary].
-        4. Opening: Formal request to adjudicate the attached petition.
-        5. Body: 2-3 sentences verifying the Petitioner's status and the qualifying relationship (e.g., "Petitioner is a ${params.petitionerStatus} and the spouse of Beneficiary...").
-        6. **INDEX OF DOCUMENTS**: Use the provided Exhibits structure (Exhibit A, Exhibit B, etc.). List items clearly.
-        7. Closing: "Copies of documents submitted are exact photocopies of unaltered original documents..." (Standard USCIS disclaimer).
-        8. Language: English (Official). If user language is ${lang} and not English, add a [Translated Summary] block at the very top.
+        **Strict Formatting Rules**:
+        1. Format strictly as a formal legal document.
+        2. Header: Current Date, To [Recipient Address].
+        3. Subject Line: RE: ${params.formType} - [Beneficiary Name] (A-Number if avail).
+        4. Opening: Formal salutation.
+        5. Tone: 
+           - If a "Petition Cover Letter", use confident, procedural legal tone ("Please find enclosed...").
+           - If a "Hardship Letter", use a persuasive, emotional but factual tone detailing the suffering.
+           - If a "Character Reference", use a sincere, personal but respectful tone.
+           - If an "Asylum Statement", use a first-person narrative tone ("I fear returning because...").
+        6. **Body**: Weave the provided "Content/Evidence" points into the narrative effectively. 
+        7. **Index**: If it is a Cover Letter, include an "INDEX OF DOCUMENTS" or "EXHIBIT LIST" at the bottom. If it is a personal statement, do not include an exhibit list unless referenced.
+        8. Closing: Professional sign-off.
+        9. Language: English (Official). If user language is ${lang} and not English, add a [Translated Summary] block at the very top.
         `;
 
         const response = await ai.models.generateContent({
