@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getFieldHelp, validateFormInput } from '../services/geminiService';
+import { generateSummaryPDF } from '../services/pdfService';
 import { FormFieldHelp, ValidationResult } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { 
@@ -11,7 +12,10 @@ import {
   Lightbulb,
   XCircle,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Calendar as CalendarIcon,
+  Download,
+  FileText
 } from 'lucide-react';
 
 // --- Legal Definitions Dictionary ---
@@ -22,6 +26,42 @@ const LEGAL_DEFINITIONS: Record<string, string> = {
   "Charged": "Formally accused of a crime by a government prosecutor.",
   "Detained": "Held by an officer for questioning (e.g., at a traffic stop, border, or airport) where you were not free to leave.",
   "Law enforcement official": "Any police officer, sheriff, immigration officer (CBP/ICE), or federal agent."
+};
+
+// --- Mock Zip Code Database (Expanded for US Major Cities) ---
+const ZIP_LOOKUP: Record<string, { city: string, state: string }> = {
+  "10001": { city: "New York", state: "NY" },
+  "10002": { city: "New York", state: "NY" },
+  "10012": { city: "New York", state: "NY" },
+  "11201": { city: "Brooklyn", state: "NY" },
+  "90001": { city: "Los Angeles", state: "CA" },
+  "90210": { city: "Beverly Hills", state: "CA" },
+  "94102": { city: "San Francisco", state: "CA" },
+  "94103": { city: "San Francisco", state: "CA" },
+  "60601": { city: "Chicago", state: "IL" },
+  "77001": { city: "Houston", state: "TX" },
+  "85001": { city: "Phoenix", state: "AZ" },
+  "19101": { city: "Philadelphia", state: "PA" },
+  "78201": { city: "San Antonio", state: "TX" },
+  "92101": { city: "San Diego", state: "CA" },
+  "75201": { city: "Dallas", state: "TX" },
+  "95101": { city: "San Jose", state: "CA" },
+  "78701": { city: "Austin", state: "TX" },
+  "32201": { city: "Jacksonville", state: "FL" },
+  "33139": { city: "Miami Beach", state: "FL" },
+  "43201": { city: "Columbus", state: "OH" },
+  "46201": { city: "Indianapolis", state: "IN" },
+  "28201": { city: "Charlotte", state: "NC" },
+  "98101": { city: "Seattle", state: "WA" },
+  "80201": { city: "Denver", state: "CO" },
+  "20001": { city: "Washington", state: "DC" },
+  "02101": { city: "Boston", state: "MA" },
+  "33101": { city: "Miami", state: "FL" },
+  "48201": { city: "Detroit", state: "MI" },
+  "37201": { city: "Nashville", state: "TN" },
+  "30301": { city: "Atlanta", state: "GA" },
+  "89101": { city: "Las Vegas", state: "NV" },
+  "55401": { city: "Minneapolis", state: "MN" }
 };
 
 // --- LegalTerm Component ---
@@ -69,6 +109,7 @@ const SmartInput: React.FC<SmartFieldProps> = ({
   id, label, value, onChange, onFocus, onBlur, type = "text", placeholder, validation, isValidating, isActive 
 }) => {
   const { dir } = useLanguage();
+  
   return (
     <div className={`mb-4 group relative transition-all duration-500 ${isActive ? 'scale-[1.02] translate-x-1' : ''}`}>
       <label htmlFor={id} className="block text-sm font-semibold mb-1.5 flex justify-between items-center transition-colors">
@@ -87,7 +128,13 @@ const SmartInput: React.FC<SmartFieldProps> = ({
           onFocus={onFocus}
           onBlur={onBlur}
           placeholder={placeholder}
+          onClick={(e) => {
+              if (type === 'date') {
+                  try { (e.target as HTMLInputElement).showPicker(); } catch(err) {}
+              }
+          }}
           className={`w-full p-3 rounded-xl border-2 transition-all duration-300 outline-none 
+            ${type === 'date' ? 'cursor-pointer' : ''}
             ${validation?.severity === 'error' ? 'border-red-300 bg-red-50 focus:border-red-500' : 
               validation?.severity === 'warning' ? 'border-amber-300 bg-amber-50 focus:border-amber-500' :
               validation?.severity === 'success' ? 'border-green-300 bg-green-50 focus:border-green-500' :
@@ -95,7 +142,14 @@ const SmartInput: React.FC<SmartFieldProps> = ({
               'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50'
             }`}
         />
-        {validation && (
+        
+        {type === 'date' && (
+            <div className={`absolute ${dir === 'rtl' ? 'left-3' : 'right-3'} top-3.5 pointer-events-none text-slate-400`}>
+                <CalendarIcon className="w-5 h-5" />
+            </div>
+        )}
+
+        {validation && type !== 'date' && (
            <div className={`absolute ${dir === 'rtl' ? 'left-3' : 'right-3'} top-3.5`}>
              {validation.severity === 'error' && <XCircle className="w-5 h-5 text-red-500" />}
              {validation.severity === 'warning' && <AlertCircle className="w-5 h-5 text-amber-500" />}
@@ -181,6 +235,7 @@ export const FormAssistant: React.FC = () => {
   const [activeFieldId, setActiveFieldId] = useState<string>('address');
   const [validations, setValidations] = useState<Record<string, ValidationResult>>({});
   const [validatingFields, setValidatingFields] = useState<Record<string, boolean>>({});
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   
   // AI Helper State
   const [helperData, setHelperData] = useState<Record<string, FormFieldHelp>>({});
@@ -206,29 +261,32 @@ export const FormAssistant: React.FC = () => {
   // --- Handlers ---
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear validation on change so user doesn't see stale errors
-    if (validations[field]) {
-        setValidations(prev => {
-            const next = { ...prev };
-            delete next[field];
-            return next;
-        });
-    }
+    setFormData(prev => {
+        const newData = { ...prev, [field]: value };
+        if (field === 'zip' && value.length === 5 && ZIP_LOOKUP[value]) {
+            newData.city = ZIP_LOOKUP[value].city;
+            newData.state = ZIP_LOOKUP[value].state;
+        }
+        return newData;
+    });
+
+    setValidations(prev => {
+        const next = { ...prev };
+        delete next[field];
+        if (field === 'zip') {
+            delete next.city;
+            delete next.state;
+        }
+        return next;
+    });
   };
 
   const handleBlur = async (field: string) => {
-    // Note: We validate even empty fields to flag missing requirements
     const value = formData[field as keyof typeof formData];
-
     setValidatingFields(prev => ({ ...prev, [field]: true }));
-    
-    // Construct context string from other fields
     const context = JSON.stringify(formData);
     const label = fieldDefinitions[field]?.fullQuestion || field;
-
     const result = await validateFormInput(label, value, context, language);
-    
     setValidations(prev => ({ ...prev, [field]: result }));
     setValidatingFields(prev => ({ ...prev, [field]: false }));
   };
@@ -243,16 +301,36 @@ export const FormAssistant: React.FC = () => {
     setLoadingHelp(false);
   };
 
-  // Auto-load help when field is focused
   useEffect(() => {
     if (activeFieldId) {
-        // Debounce slightly to avoid spamming API on rapid tabbing
         const timer = setTimeout(() => {
             loadAiHelp(activeFieldId);
         }, 500);
         return () => clearTimeout(timer);
     }
   }, [activeFieldId, language]);
+
+  const handleDownloadPDF = async () => {
+      setIsGeneratingPdf(true);
+      try {
+          const pdfBytes = await generateSummaryPDF(formData, 'Form I-130');
+          
+          // Create download link
+          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'I-130_Draft_Summary.pdf';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+      } catch (e) {
+          console.error("PDF Gen Error", e);
+          alert("Failed to generate PDF.");
+      } finally {
+          setIsGeneratingPdf(false);
+      }
+  };
 
   return (
     <div className="max-w-6xl mx-auto lg:h-[calc(100vh-8rem)] h-auto flex flex-col lg:flex-row gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 lg:pb-0">
@@ -292,6 +370,24 @@ export const FormAssistant: React.FC = () => {
             />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                     <SmartInput 
+                        id="zip" label="Zip Code" 
+                        value={formData.zip} onChange={(v) => handleInputChange('zip', v)}
+                        onFocus={() => setActiveFieldId('zip')}
+                        onBlur={() => handleBlur('zip')}
+                        isActive={activeFieldId === 'zip'}
+                        validation={validations.zip} isValidating={validatingFields.zip}
+                    />
+                    <SmartInput 
+                        id="state" label="State" 
+                        value={formData.state} onChange={(v) => handleInputChange('state', v)}
+                        onFocus={() => setActiveFieldId('state')}
+                        onBlur={() => handleBlur('state')}
+                        isActive={activeFieldId === 'state'}
+                        validation={validations.state} isValidating={validatingFields.state}
+                    />
+                </div>
                 <SmartInput 
                     id="city" label="City" 
                     value={formData.city} onChange={(v) => handleInputChange('city', v)}
@@ -300,24 +396,6 @@ export const FormAssistant: React.FC = () => {
                     isActive={activeFieldId === 'city'}
                     validation={validations.city} isValidating={validatingFields.city}
                 />
-                <div className="grid grid-cols-2 gap-4">
-                     <SmartInput 
-                        id="state" label="State" 
-                        value={formData.state} onChange={(v) => handleInputChange('state', v)}
-                        onFocus={() => setActiveFieldId('state')}
-                        onBlur={() => handleBlur('state')}
-                        isActive={activeFieldId === 'state'}
-                        validation={validations.state} isValidating={validatingFields.state}
-                    />
-                    <SmartInput 
-                        id="zip" label="Zip Code" 
-                        value={formData.zip} onChange={(v) => handleInputChange('zip', v)}
-                        onFocus={() => setActiveFieldId('zip')}
-                        onBlur={() => handleBlur('zip')}
-                        isActive={activeFieldId === 'zip'}
-                        validation={validations.zip} isValidating={validatingFields.zip}
-                    />
-                </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
@@ -410,8 +488,16 @@ export const FormAssistant: React.FC = () => {
             )}
         </div>
 
-        <div className="flex justify-end pb-10 lg:pb-0">
-            <button className="w-full sm:w-auto bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex items-center justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-end pb-10 lg:pb-0">
+            <button 
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPdf}
+                className="flex-1 sm:flex-none sm:w-auto bg-slate-100 text-slate-700 hover:bg-slate-200 px-6 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+            >
+                {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                Download PDF
+            </button>
+            <button className="flex-1 sm:flex-none sm:w-auto bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex items-center justify-center">
                 {t('saveContinue')} <ArrowRight className={`w-4 h-4 ${dir === 'rtl' ? 'mr-2 rotate-180' : 'ml-2'}`} />
             </button>
         </div>

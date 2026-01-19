@@ -407,7 +407,7 @@ export const validateFormInput = async (
       Form Context: "${formContext}"
 
       Rules:
-      1. DATES: STRICTLY enforce MM/DD/YYYY format (e.g., 10/25/2023). If the format is wrong (e.g., "2023-10-25" or "Oct 25"), mark as ERROR and provide the corrected MM/DD/YYYY in the 'suggestion' field.
+      1. DATES: The system uses standard digital date pickers that return ISO format (YYYY-MM-DD). This is VALID for digital processing. Do NOT flag YYYY-MM-DD as an error. Only flag dates that are logically impossible (e.g. future birth date) or missing required dates.
       2. REQUIRED: If User Input is empty/blank, mark as ERROR with message "This field is required". Exception: "Date To" can be "Present" or left blank if context implies current residence.
       3. ADDRESSES: Must be physical addresses (No PO Boxes). Must contain Street Number, Name, City, State, Zip.
       4. LOGIC: "Date To" cannot be before "Date From". If "Date To" is empty, check if they still live there (Suggestion: "Present").

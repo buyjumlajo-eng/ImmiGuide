@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { FormAssistant } from './components/FormAssistant';
@@ -12,12 +12,13 @@ import { AdminPanel } from './components/AdminPanel';
 import { CaseLawExplorer } from './components/CaseLawExplorer';
 import { InterviewSimulator } from './components/InterviewSimulator';
 import { KnowledgeCenter } from './components/KnowledgeCenter';
-import { AttorneyOnboarding } from './components/AttorneyOnboarding'; // Import new component
+import { AttorneyOnboarding } from './components/AttorneyOnboarding'; 
 import { Paywall } from './components/Paywall'; 
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import { AuthScreen } from './components/AuthScreen';
+import { LegalModal } from './components/LegalModal';
 import { Loader2 } from 'lucide-react';
 import { SubscriptionTier } from './types';
 
@@ -26,23 +27,33 @@ export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' 
 
 const InnerApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
+  const [showLegal, setShowLegal] = useState(false);
   const { isAuthenticated, isLoading, user } = useAuth();
+
+  useEffect(() => {
+      // Check if user has accepted terms
+      const accepted = localStorage.getItem('immi_tos_accepted');
+      if (!accepted) {
+          setShowLegal(true);
+      }
+  }, []);
+
+  const handleAcceptTerms = () => {
+      localStorage.setItem('immi_tos_accepted', 'true');
+      setShowLegal(false);
+  };
 
   // Helper to check if user has access to a specific view
   const hasAccess = (view: ViewState, tier: SubscriptionTier = 'free'): boolean => {
-      // Admin always open (in this demo context)
       if (view === 'admin') return true;
-      if (view === 'attorney-signup') return true; // Public access
+      if (view === 'attorney-signup') return true; 
       
-      // Free items
       if (view === 'dashboard' || view === 'marketplace' || view === 'knowledge') return true;
 
-      // 'One Form' tier adds access to forms
       if (tier === 'one_form') {
           return view === 'forms';
       }
 
-      // Pro tiers have access to everything
       if (tier === 'monthly' || tier === 'annual') {
           return true;
       }
@@ -57,6 +68,10 @@ const InnerApp: React.FC = () => {
         <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
       </div>
     );
+  }
+
+  if (showLegal) {
+      return <LegalModal onAccept={handleAcceptTerms} />;
   }
 
   // Show Login Screen if not authenticated
