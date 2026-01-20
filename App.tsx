@@ -28,20 +28,20 @@ export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' 
 
 const InnerApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
-  const [showLegal, setShowLegal] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const { isAuthenticated, isLoading, user } = useAuth();
 
   useEffect(() => {
       // Check if user has accepted terms
-      const accepted = localStorage.getItem('immi_tos_accepted');
-      if (!accepted) {
-          setShowLegal(true);
+      const accepted = localStorage.getItem('visaguide_tos_accepted');
+      if (accepted) {
+          setTermsAccepted(true);
       }
   }, []);
 
   const handleAcceptTerms = () => {
-      localStorage.setItem('immi_tos_accepted', 'true');
-      setShowLegal(false);
+      localStorage.setItem('visaguide_tos_accepted', 'true');
+      setTermsAccepted(true);
   };
 
   // Helper to check if user has access to a specific view
@@ -71,16 +71,18 @@ const InnerApp: React.FC = () => {
     );
   }
 
-  if (showLegal) {
-      return <LegalModal onAccept={handleAcceptTerms} />;
-  }
-
-  // Show Login Screen if not authenticated
+  // 1. If NOT authenticated, show the Landing Page (AuthScreen) first.
+  // This allows users to see the site before dealing with legal modals.
   if (!isAuthenticated) {
     return <AuthScreen />;
   }
 
-  // Show Main App if authenticated
+  // 2. If Authenticated but terms NOT accepted, show Legal Modal.
+  if (!termsAccepted) {
+      return <LegalModal onAccept={handleAcceptTerms} />;
+  }
+
+  // 3. If Authenticated AND terms accepted, show main app.
   const renderView = () => {
     // Check permissions
     if (!hasAccess(currentView, user?.subscriptionTier)) {

@@ -46,7 +46,7 @@ const MOCK_ATTORNEYS_DATA = `
 `;
 
 const MOCK_SITE_CONTENTS = `
-You are ImmiGuide, a specialized AI assistant for US immigration.
+You are Visa Guide AI, a specialized AI assistant for US immigration.
 You have access to the following internal application structure and data. 
 
 **NAVIGATION & FEATURES MAP**:
@@ -108,12 +108,12 @@ ${MOCK_ATTORNEYS_DATA}
 - Attorney Consults: Prices vary (see directory).
 
 **CONTACT**:
-- Support: support@immiguide.com
+- Support: mail@visaguideai.com
 - Emergency: Go to Marketplace for legal counsel.
 `;
 
 const getSystemInstruction = (lang: Language) => `
-You are ImmiGuide, a specialized US Immigration assistant. 
+You are Visa Guide AI, a specialized US Immigration assistant. 
 Your goal is to reduce anxiety and prevent errors for immigrants.
 You are NOT a lawyer and cannot give legal advice, but you provide legal information, strategy, and plain-english translations of complex USCIS terms.
 Always be empathetic, clear, and structured.
@@ -656,7 +656,7 @@ export const getStrategyStream = async (history: {role: string, parts: {text: st
 // --- Support Agent Prompts & Tools ---
 
 const getBaseSystemInstruction = (lang: Language) => `
-You are a helpful voice & text assistant for ImmiGuide, a US Immigration App.
+You are a helpful voice & text assistant for Visa Guide AI, a US Immigration App.
 You MUST use the provided [NAVIGATION & FEATURES MAP] and [SITE CONTENTS] to answer questions. 
 
 **SITE CONTENTS**:

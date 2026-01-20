@@ -106,7 +106,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Compass className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-800">ImmiGuide</span>
+            <span className="text-xl font-bold text-slate-800">Visa Guide AI</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
               <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Beta</div>
@@ -214,7 +214,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Compass className="w-5 h-5 text-white" />
             </div>
-            <span className="text-lg font-bold text-slate-800">ImmiGuide</span>
+            <span className="text-lg font-bold text-slate-800">Visa Guide AI</span>
           </div>
           <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600">
             <Menu className="w-6 h-6" />
