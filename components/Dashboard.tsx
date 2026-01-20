@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewState } from '../App';
 import { 
   CheckCircle2, 
@@ -16,12 +16,15 @@ import {
   Globe,
   Info,
   CheckCircle,
-  X
+  X,
+  Bell,
+  BellRing
 } from 'lucide-react';
 import { CaseStat, PredictionResult } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { predictCaseTimeline } from '../services/geminiService';
+import { requestNotificationPermission, simulateCaseUpdate } from '../services/notifications';
 
 interface DashboardProps {
   onViewChange: (view: ViewState) => void;
@@ -32,6 +35,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
   const { announcements, deleteAnnouncement } = useData();
   const [isPredicting, setIsPredicting] = useState(false);
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  
+  useEffect(() => {
+      if ('Notification' in window && Notification.permission === 'granted') {
+          setNotificationsEnabled(true);
+      }
+  }, []);
+
+  const handleEnableNotifications = async () => {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+          setNotificationsEnabled(true);
+          // Trigger a demo notification
+          simulateCaseUpdate();
+          alert("Notifications enabled! You will receive a test alert in 5 seconds.");
+      }
+  };
   
   // Mock data for the "Worry Tracker"
   const caseStat: CaseStat = {
@@ -60,9 +80,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <header className="mb-2">
-        <h1 className="text-3xl font-bold text-slate-900">{t('welcome')}</h1>
-        <p className="text-slate-500 mt-2">{t('managing')}</p>
+      <header className="mb-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 className="text-3xl font-bold text-slate-900">{t('welcome')}</h1>
+            <p className="text-slate-500 mt-2">{t('managing')}</p>
+        </div>
+        
+        {/* Notification Toggle */}
+        <button 
+            onClick={notificationsEnabled ? undefined : handleEnableNotifications}
+            disabled={notificationsEnabled}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm ${
+                notificationsEnabled 
+                ? 'bg-green-100 text-green-700 cursor-default' 
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-blue-600'
+            }`}
+        >
+            {notificationsEnabled ? <BellRing className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+            {notificationsEnabled ? 'Alerts Active' : 'Enable Case Alerts'}
+        </button>
       </header>
 
       {/* Admin Announcements Section */}

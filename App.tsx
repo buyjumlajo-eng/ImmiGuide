@@ -14,6 +14,7 @@ import { InterviewSimulator } from './components/InterviewSimulator';
 import { KnowledgeCenter } from './components/KnowledgeCenter';
 import { AttorneyOnboarding } from './components/AttorneyOnboarding'; 
 import { RiskAnalyzer } from './components/RiskAnalyzer';
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { Paywall } from './components/Paywall'; 
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -26,7 +27,7 @@ import { SubscriptionTier } from './types';
 import { trackEvent } from './services/analytics';
 
 // Updated view router state
-export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' | 'strategy' | 'marketplace' | 'translations' | 'admin' | 'caselaw' | 'interview' | 'knowledge' | 'attorney-signup' | 'risk';
+export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' | 'strategy' | 'marketplace' | 'translations' | 'admin' | 'caselaw' | 'interview' | 'knowledge' | 'attorney-signup' | 'risk' | 'analytics';
 
 const InnerApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
@@ -130,6 +131,8 @@ const InnerApp: React.FC = () => {
         return <KnowledgeCenter />;
       case 'risk':
         return <RiskAnalyzer />;
+      case 'analytics':
+        return <AnalyticsDashboard />;
       case 'attorney-signup':
         return <AttorneyOnboarding onViewChange={setCurrentView} />;
       default:

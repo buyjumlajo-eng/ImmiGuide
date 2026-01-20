@@ -84,7 +84,10 @@ export interface StoredDocument {
   uploadDate: Date;
   status: 'scanning' | 'verified' | 'issue';
   ocrData?: string;
-  previewUrl?: string;
+  previewUrl?: string; // Legacy unencrypted URL or placeholder
+  encryptedData?: string; // Base64 ciphertext
+  iv?: string; // Initialization vector
+  isEncrypted?: boolean;
 }
 
 export interface PredictionResult {

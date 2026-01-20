@@ -21,7 +21,8 @@ import {
   Zap,
   Crown,
   BookOpen,
-  FileSearch
+  FileSearch,
+  BarChart2
 } from 'lucide-react';
 import { ChatWidget } from './ChatWidget';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -121,6 +122,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
         <nav className="flex-1 p-4 overflow-y-auto custom-scrollbar">
           <div className="space-y-1">
             <NavItem view="dashboard" icon={LayoutDashboard} label={t('dashboard')} />
+            <NavItem view="analytics" icon={BarChart2} label="Advanced Analytics" />
             <NavItem view="risk" icon={FileSearch} label="Risk Analyzer" />
             <NavItem view="knowledge" icon={BookOpen} label="Knowledge Center" />
             <NavItem view="forms" icon={FileText} label={t('formAssistant')} />
@@ -226,6 +228,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
         <div className="md:hidden fixed inset-0 z-40 bg-white pt-20 px-4 overflow-y-auto">
            <nav className="space-y-2">
             <NavItem view="dashboard" icon={LayoutDashboard} label={t('dashboard')} />
+            <NavItem view="analytics" icon={BarChart2} label="Advanced Analytics" />
             <NavItem view="risk" icon={FileSearch} label="Risk Analyzer" />
             <NavItem view="knowledge" icon={BookOpen} label="Knowledge Center" />
             <NavItem view="forms" icon={FileText} label={t('formAssistant')} />

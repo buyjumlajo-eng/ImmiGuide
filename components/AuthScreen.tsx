@@ -1140,7 +1140,7 @@ export const AuthScreen: React.FC = () => {
             </div>
             <div className="stat-item">
                 <div className="stat-number">24/7</div>
-                <div class="stat-label">AI Support Available</div>
+                <div className="stat-label">AI Support Available</div>
             </div>
         </div>
       </section>

@@ -3,10 +3,12 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { initAnalytics } from './services/analytics';
 import { initErrorLogging } from './services/errorLogging';
+import { registerServiceWorker } from './services/notifications';
 
-// Initialize Analytics & Error Logging
+// Initialize Services
 initAnalytics();
 initErrorLogging();
+registerServiceWorker(); // Register Push Notification SW
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

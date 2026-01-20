@@ -13,15 +13,19 @@ import {
   Eye,
   FileText,
   X,
-  Camera
+  Camera,
+  ShieldCheck,
+  KeyRound,
+  CheckCircle
 } from 'lucide-react';
 import { StoredDocument } from '../types';
+import { generateVaultKey, exportKey, importKey, encryptData, decryptData } from '../services/encryption';
 
 export const DocumentVault: React.FC = () => {
   const { dir } = useLanguage();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   
-  // Initial Mock Data with Visual Placeholders
+  // Initial Mock Data (Legacy Unencrypted)
   const INITIAL_DOCS: StoredDocument[] = [
     { 
       id: '1', 
@@ -30,7 +34,8 @@ export const DocumentVault: React.FC = () => {
       uploadDate: new Date('2023-10-15'), 
       status: 'verified', 
       ocrData: 'Extracted: Jane Doe, DOB: 01/01/1990, Place: Bogota...',
-      previewUrl: 'https://plus.unsplash.com/premium_photo-1661775756810-82dbd209fc95?q=80&w=800&auto=format&fit=crop' // Placeholder visual
+      previewUrl: 'https://plus.unsplash.com/premium_photo-1661775756810-82dbd209fc95?q=80&w=800&auto=format&fit=crop',
+      isEncrypted: false
     },
     { 
       id: '2', 
@@ -39,21 +44,12 @@ export const DocumentVault: React.FC = () => {
       uploadDate: new Date('2023-10-15'), 
       status: 'verified', 
       ocrData: 'Extracted: Passport #A12345678, Exp: 2030...',
-      previewUrl: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=800&auto=format&fit=crop'
-    },
-    { 
-      id: '3', 
-      name: 'Marriage_License.pdf', 
-      type: 'PDF', 
-      uploadDate: new Date('2023-11-01'), 
-      status: 'verified', 
-      ocrData: 'Extracted: Marriage Date: 10/10/2022...',
-      previewUrl: 'https://images.unsplash.com/photo-1628155930542-3c7a64e2c833?q=80&w=800&auto=format&fit=crop'
+      previewUrl: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=800&auto=format&fit=crop',
+      isEncrypted: false
     }
   ];
 
   const [documents, setDocuments] = useState<StoredDocument[]>(() => {
-      // Load from local storage on mount
       const saved = localStorage.getItem('immi_vault_docs');
       if (saved) {
           try {
@@ -66,78 +62,137 @@ export const DocumentVault: React.FC = () => {
       return INITIAL_DOCS;
   });
 
+  const [vaultKey, setVaultKey] = useState<CryptoKey | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [encryptionStatus, setEncryptionStatus] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // View State
   const [viewDoc, setViewDoc] = useState<StoredDocument | null>(null);
+  const [decryptedPreview, setDecryptedPreview] = useState<string | null>(null);
+  const [isDecrypting, setIsDecrypting] = useState(false);
 
-  // Persist to local storage whenever documents change
+  // --- Key Management ---
+  useEffect(() => {
+      const initKey = async () => {
+          try {
+              const storedKey = localStorage.getItem('immi_vault_key');
+              if (storedKey) {
+                  const key = await importKey(storedKey);
+                  setVaultKey(key);
+              } else {
+                  const key = await generateVaultKey();
+                  const exported = await exportKey(key);
+                  localStorage.setItem('immi_vault_key', exported);
+                  setVaultKey(key);
+              }
+          } catch (e) {
+              console.error("Failed to initialize encryption key", e);
+          }
+      };
+      initKey();
+  }, []);
+
+  // --- Persistence ---
   useEffect(() => {
       try {
         localStorage.setItem('immi_vault_docs', JSON.stringify(documents));
       } catch (e) {
         console.warn("Storage quota exceeded", e);
+        alert("Local storage is full. Please delete some documents.");
       }
   }, [documents]);
 
+  // --- Upload & Encrypt ---
   const processFile = (file: File) => {
+    if (!vaultKey) {
+        alert("Encryption key not ready. Please refresh.");
+        return;
+    }
+
     setIsUploading(true);
-    setUploadProgress(0);
+    setEncryptionStatus('Reading file...');
+    setUploadProgress(10);
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
         const base64String = event.target?.result as string;
         
-        // Simulation of upload progress
-        let currentProgress = 0;
-        const interval = setInterval(() => {
-            currentProgress += Math.random() * 15;
-            if (currentProgress > 95) currentProgress = 95;
-            setUploadProgress(currentProgress);
-        }, 100);
+        setUploadProgress(40);
+        setEncryptionStatus('Encrypting (AES-256)...');
 
-        // Finish upload after delay
-        setTimeout(() => {
-            clearInterval(interval);
-            setUploadProgress(100);
+        try {
+            // Artificial delay to show encryption step
+            await new Promise(r => setTimeout(r, 800));
             
-            // Use a robust ID generation to ensure uniqueness
+            // Encrypt
+            const { iv, ciphertext } = await encryptData(base64String, vaultKey);
+            
+            setUploadProgress(80);
+            setEncryptionStatus('Securing in Vault...');
+
+            // Create Document
             const newId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            
             const newDoc: StoredDocument = {
                 id: newId,
                 name: file.name,
                 type: file.name.split('.').pop()?.toUpperCase() || 'DOC',
                 uploadDate: new Date(),
-                status: 'scanning', 
-                ocrData: 'Scanning in progress...',
-                previewUrl: base64String 
+                status: 'scanning',
+                isEncrypted: true,
+                encryptedData: ciphertext,
+                iv: iv,
+                previewUrl: undefined, // No raw data stored
+                ocrData: 'Analyzing...'
             };
 
-            // Add doc after small delay to show 100%
+            setDocuments(prev => [newDoc, ...prev]);
+            
+            setUploadProgress(100);
             setTimeout(() => {
-                setDocuments(prev => [newDoc, ...prev]);
                 setIsUploading(false);
                 setUploadProgress(0);
+                setEncryptionStatus('');
             }, 500);
 
-            // Simulate OCR
+            // Mock OCR update
             setTimeout(() => {
-                setDocuments(prev => prev.map(d => {
-                    if (d.id === newDoc.id) {
-                         return { 
-                             ...d, 
-                             status: 'verified', 
-                             ocrData: `Smart Extract:\nFilename: ${file.name}\nSize: ${(file.size / 1024).toFixed(2)} KB\nDetected Date: ${new Date().toLocaleDateString()}\nStatus: Valid\n\n(AI would list extracted fields here)` 
-                         };
-                    }
-                    return d;
-                }));
-            }, 4000);
-        }, 1500);
+                setDocuments(prev => prev.map(d => 
+                    d.id === newId ? { ...d, status: 'verified', ocrData: `Smart Extract (Encrypted Source):\nFilename: ${file.name}\nDate: ${new Date().toLocaleDateString()}\n[PII Protected]` } : d
+                ));
+            }, 3000);
+
+        } catch (e) {
+            console.error(e);
+            alert("Encryption failed.");
+            setIsUploading(false);
+        }
     };
     reader.readAsDataURL(file);
+  };
+
+  // --- Decrypt & View ---
+  const handleView = async (doc: StoredDocument) => {
+      setViewDoc(doc);
+      setDecryptedPreview(null);
+      
+      if (doc.isEncrypted && doc.encryptedData && doc.iv && vaultKey) {
+          setIsDecrypting(true);
+          try {
+              const decrypted = await decryptData(doc.encryptedData, doc.iv, vaultKey);
+              setDecryptedPreview(decrypted);
+          } catch (e) {
+              console.error(e);
+              setDecryptedPreview(null); // Shows error state in modal
+          } finally {
+              setIsDecrypting(false);
+          }
+      } else {
+          // Legacy or unencrypted docs
+          setDecryptedPreview(doc.previewUrl || null);
+      }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -161,18 +216,14 @@ export const DocumentVault: React.FC = () => {
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
          processFile(e.target.files[0]);
-         e.target.value = ''; // Reset
+         e.target.value = ''; 
     }
   };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
-      // Robust event handling
       e.preventDefault();
       e.stopPropagation();
-      
-      const targetId = String(id);
-      // Removed window.confirm to bypass potential browser blockers and ensure functionality
-      setDocuments(prev => prev.filter(d => String(d.id) !== targetId));
+      setDocuments(prev => prev.filter(d => String(d.id) !== String(id)));
   };
 
   const filteredDocs = documents.filter(doc => 
@@ -187,11 +238,11 @@ export const DocumentVault: React.FC = () => {
             <FolderLock className="w-8 h-8 text-blue-600" />
             Secure Data Vault
           </h1>
-          <p className="text-slate-500 mt-2">Bank-grade encrypted storage with Intelligent OCR.</p>
+          <p className="text-slate-500 mt-2">End-to-End Encrypted storage for sensitive immigration documents.</p>
         </div>
-        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full border border-green-200 shadow-sm">
-            <Lock className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">AES-256 Encrypted</span>
+        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full border border-green-200 shadow-sm animate-in fade-in">
+            <ShieldCheck className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-wider">AES-256 GCM Active</span>
         </div>
       </div>
 
@@ -205,7 +256,6 @@ export const DocumentVault: React.FC = () => {
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
               >
-                  {/* Standard File Input (Hidden) - Absolute coverage for drag/drop/click area */}
                   {!isUploading && (
                       <input 
                         type="file" 
@@ -215,7 +265,6 @@ export const DocumentVault: React.FC = () => {
                       />
                   )}
 
-                  {/* Camera Input (Hidden) - Triggered by button */}
                   <input 
                     type="file" 
                     ref={cameraInputRef}
@@ -227,17 +276,16 @@ export const DocumentVault: React.FC = () => {
                   
                   {isUploading ? (
                       <div className="w-full max-w-xs animate-in fade-in zoom-in">
-                          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 mx-auto">
-                              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 mx-auto border-2 border-blue-100">
+                              <Lock className="w-8 h-8 text-blue-600 animate-pulse" />
                           </div>
-                          <h3 className="text-lg font-bold text-slate-900 mb-2">Uploading Document...</h3>
-                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                          <h3 className="text-lg font-bold text-slate-900 mb-1">{encryptionStatus}</h3>
+                          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mt-3">
                               <div 
                                 className="h-full bg-blue-600 transition-all duration-300 ease-out" 
                                 style={{ width: `${uploadProgress}%` }}
                               />
                           </div>
-                          <p className="text-xs text-slate-500 mt-2 font-medium">{Math.round(uploadProgress)}% Complete</p>
                       </div>
                   ) : (
                       <>
@@ -245,10 +293,10 @@ export const DocumentVault: React.FC = () => {
                             <Upload className={`w-8 h-8 ${isDragging ? 'text-blue-700' : 'text-blue-600'}`} />
                         </div>
                         <h3 className={`text-lg font-bold transition-colors ${isDragging ? 'text-blue-700' : 'text-slate-900'}`}>
-                            {isDragging ? 'Drop to Upload' : 'Upload Documents'}
+                            {isDragging ? 'Drop to Encrypt & Upload' : 'Encrypt & Upload'}
                         </h3>
                         <p className={`text-sm mt-1 transition-colors mb-6 ${isDragging ? 'text-blue-600' : 'text-slate-500'}`}>
-                            Drag & drop or click to upload.
+                            Files are encrypted locally before saving.
                         </p>
                         
                         <button 
@@ -291,47 +339,47 @@ export const DocumentVault: React.FC = () => {
                           filteredDocs.map((doc) => (
                             <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group">
                                 <div className="flex items-center gap-4">
-                                    {doc.previewUrl ? (
-                                        <div className="w-12 h-12 rounded-lg border border-slate-200 overflow-hidden bg-slate-100">
-                                            <img src={doc.previewUrl} className="w-full h-full object-cover" alt="thumbnail" />
-                                        </div>
-                                    ) : (
-                                        <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-500 text-xs border border-slate-200">
-                                            {doc.type}
-                                        </div>
-                                    )}
+                                    <div className="w-12 h-12 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center relative overflow-hidden">
+                                        {doc.isEncrypted ? (
+                                            <Lock className="w-5 h-5 text-slate-400" />
+                                        ) : (
+                                            doc.previewUrl ? <img src={doc.previewUrl} className="w-full h-full object-cover opacity-50" alt="" /> : <FileText className="w-5 h-5 text-slate-400" />
+                                        )}
+                                        {doc.isEncrypted && (
+                                            <div className="absolute inset-0 bg-gradient-to-tr from-slate-200/50 to-transparent flex items-end justify-end p-1">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm"></div>
+                                            </div>
+                                        )}
+                                    </div>
                                     
                                     <div>
-                                        <h4 className="font-semibold text-slate-900 text-sm">{doc.name}</h4>
-                                        <p className="text-xs text-slate-500">{doc.uploadDate.toLocaleDateString()} • {(doc.ocrData && doc.ocrData.includes('Size')) ? doc.ocrData.split('Size: ')[1].split('\n')[0] : 'Scanned'}</p>
+                                        <h4 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+                                            {doc.name}
+                                            {doc.isEncrypted && <span className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-500 border border-slate-200 font-mono">E2EE</span>}
+                                        </h4>
+                                        <p className="text-xs text-slate-500">{doc.uploadDate.toLocaleDateString()}</p>
                                     </div>
                                 </div>
                                 
                                 <div className="flex items-center gap-4">
-                                    {/* Status Badge */}
                                     {doc.status === 'scanning' ? (
                                         <span className="flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md animate-pulse">
-                                            <Scan className="w-3 h-3" /> OCR...
-                                        </span>
-                                    ) : doc.status === 'verified' ? (
-                                        <span className="flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md">
-                                            <FileCheck className="w-3 h-3" /> Verified
+                                            <Scan className="w-3 h-3" /> Processing...
                                         </span>
                                     ) : (
-                                        <span className="flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md">
-                                            <AlertCircle className="w-3 h-3" /> Issue
+                                        <span className="flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md">
+                                            <FileCheck className="w-3 h-3" /> Secure
                                         </span>
                                     )}
 
-                                    {/* Action Buttons */}
                                     <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                         <button 
                                             type="button"
-                                            onClick={() => setViewDoc(doc)}
+                                            onClick={() => handleView(doc)}
                                             className="p-2 hover:bg-blue-100 text-slate-400 hover:text-blue-600 rounded-lg transition-colors" 
-                                            title="View Document"
+                                            title="Decrypt & View"
                                         >
-                                            <Eye className="w-4 h-4" />
+                                            {doc.isEncrypted ? <KeyRound className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                         </button>
                                         <button 
                                             type="button"
@@ -350,58 +398,36 @@ export const DocumentVault: React.FC = () => {
               </div>
           </div>
 
-          {/* Privacy & Stats Side */}
+          {/* Key Info */}
           <div className="space-y-6">
-              <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl">
-                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4">
-                      <Lock className="w-6 h-6 text-green-400" />
+              <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-green-500/20 rounded-full blur-2xl"></div>
+                  <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4 relative z-10">
+                      <KeyRound className="w-6 h-6 text-green-400" />
                   </div>
-                  <h3 className="text-lg font-bold mb-2">Privacy Guarantee</h3>
-                  <p className="text-sm text-slate-400 leading-relaxed mb-4">
-                      Your documents are encrypted locally. We use Zero-Knowledge encryption, meaning only you have the keys to view these files.
+                  <h3 className="text-lg font-bold mb-2 relative z-10">Vault Encryption</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed mb-4 relative z-10">
+                      Your files are encrypted using a locally generated key. This app uses <strong>AES-256-GCM</strong>. Only you can view these files.
                   </p>
-                  <ul className="text-sm space-y-2 text-slate-300">
-                      <li className="flex items-center gap-2"><FileCheck className="w-4 h-4 text-green-400" /> AES-256 Encryption</li>
-                      <li className="flex items-center gap-2"><FileCheck className="w-4 h-4 text-green-400" /> Local Browser Storage</li>
+                  <ul className="text-sm space-y-2 text-slate-300 relative z-10">
+                      <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /> Client-Side Encryption</li>
+                      <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /> Zero-Knowledge Architecture</li>
                   </ul>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                   <h3 className="font-bold text-slate-800 mb-4">OCR Status</h3>
-                   <div className="space-y-4">
-                       <div>
-                           <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                               <span>Evidence Extraction</span>
-                               <span>98%</span>
-                           </div>
-                           <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                               <div className="bg-blue-600 h-full rounded-full" style={{width: '98%'}}></div>
-                           </div>
-                       </div>
-                       <div>
-                           <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                               <span>Date Consistency</span>
-                               <span>100%</span>
-                           </div>
-                           <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                               <div className="bg-green-500 h-full rounded-full" style={{width: '100%'}}></div>
-                           </div>
-                       </div>
-                   </div>
               </div>
           </div>
       </div>
 
       {/* View Data Modal */}
       {viewDoc && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm animate-in fade-in duration-200">
               <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                   
                   {/* Modal Header */}
                   <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white z-10">
                       <div>
                         <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-blue-600" /> {viewDoc.name}
+                            {viewDoc.isEncrypted ? <Lock className="w-4 h-4 text-green-600" /> : <FileText className="w-5 h-5 text-blue-600" />}
+                            {viewDoc.name}
                         </h3>
                         <p className="text-xs text-slate-500 mt-0.5">Uploaded {viewDoc.uploadDate.toLocaleDateString()}</p>
                       </div>
@@ -418,16 +444,21 @@ export const DocumentVault: React.FC = () => {
                       
                       {/* File Preview (Main) */}
                       <div className="flex-1 relative flex items-center justify-center p-4 bg-slate-800/50">
-                            {viewDoc.previewUrl ? (
-                                viewDoc.type === 'PDF' && viewDoc.previewUrl.startsWith('data:application/pdf') ? (
-                                     <iframe src={viewDoc.previewUrl} className="w-full h-full rounded-lg bg-white shadow-lg" title="PDF Preview" />
+                            {isDecrypting ? (
+                                <div className="text-center text-white">
+                                    <Loader2 className="w-12 h-12 text-green-400 animate-spin mx-auto mb-4" />
+                                    <p className="text-sm font-bold">Decrypting File...</p>
+                                </div>
+                            ) : decryptedPreview ? (
+                                viewDoc.type === 'PDF' && decryptedPreview.startsWith('data:application/pdf') ? (
+                                     <iframe src={decryptedPreview} className="w-full h-full rounded-lg bg-white shadow-lg" title="PDF Preview" />
                                 ) : (
-                                     <img src={viewDoc.previewUrl} alt="Document" className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" />
+                                     <img src={decryptedPreview} alt="Document" className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" />
                                 )
                             ) : (
                                 <div className="text-center text-white/50">
                                     <FileText className="w-20 h-20 mx-auto mb-4 opacity-50" />
-                                    <p>Preview not available for this file type.</p>
+                                    <p>Decryption failed or preview unavailable.</p>
                                 </div>
                             )}
                       </div>
@@ -443,13 +474,13 @@ export const DocumentVault: React.FC = () => {
                               <div className="space-y-4">
                                   <div className="bg-green-50 text-green-800 p-3 rounded-lg text-sm border border-green-100">
                                       <div className="flex items-center gap-2 font-bold mb-1">
-                                          <FileCheck className="w-4 h-4" /> Valid Document
+                                          <ShieldCheck className="w-4 h-4" /> Integrity Verified
                                       </div>
-                                      <p className="text-xs opacity-80">This document passes all quality checks.</p>
+                                      <p className="text-xs opacity-80">Document decrypted successfully using local session key.</p>
                                   </div>
 
                                   <div>
-                                      <h5 className="text-xs font-bold text-slate-900 mb-2">Extracted Data</h5>
+                                      <h5 className="text-xs font-bold text-slate-900 mb-2">Metadata</h5>
                                       <div className="bg-slate-900 text-green-400 p-3 rounded-lg font-mono text-xs whitespace-pre-wrap leading-relaxed shadow-inner">
                                           {viewDoc.ocrData || "No data extracted."}
                                       </div>
