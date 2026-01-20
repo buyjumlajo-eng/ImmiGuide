@@ -50,7 +50,7 @@ const LandingPageStyles = () => (
     .landing-header {
         background: rgba(255, 255, 255, 0.95);
         color: #333;
-        padding: 15px 5%;
+        padding: 15px 4%;
         position: fixed;
         width: 100%;
         top: 0;
@@ -60,7 +60,7 @@ const LandingPageStyles = () => (
     }
 
     .landing-header.scrolled {
-        padding: 10px 5%;
+        padding: 10px 4%;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
@@ -68,8 +68,8 @@ const LandingPageStyles = () => (
         display: flex;
         justify-content: space-between;
         align-items: center;
-        max-width: 1200px;
-        margin: 0 auto;
+        width: 100%;
+        margin: 0;
     }
 
     .logo {
@@ -153,13 +153,14 @@ const LandingPageStyles = () => (
     .hero {
         background: linear-gradient(135deg, rgba(0, 40, 104, 0.95), rgba(0, 82, 165, 0.95)), url('https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?q=80&w=2072&auto=format&fit=crop') center/cover;
         color: white;
-        padding: 160px 5% 100px;
+        padding: 160px 4% 100px;
         text-align: center;
         position: relative;
+        width: 100%;
     }
 
     .hero-content {
-        max-width: 800px;
+        width: 100%;
         margin: 0 auto;
         position: relative;
         z-index: 1;
@@ -180,7 +181,7 @@ const LandingPageStyles = () => (
     }
 
     .hero h1 {
-        font-size: 3.2rem;
+        font-size: 3.5rem;
         margin-bottom: 1rem;
         font-weight: 800;
         line-height: 1.1;
@@ -188,10 +189,10 @@ const LandingPageStyles = () => (
     }
 
     .hero p {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         margin-bottom: 2rem;
         opacity: 0.9;
-        max-width: 600px;
+        max-width: 900px;
         margin-left: auto;
         margin-right: auto;
     }
@@ -205,14 +206,14 @@ const LandingPageStyles = () => (
 
     .btn {
         display: inline-block;
-        padding: 0.8rem 1.8rem;
+        padding: 0.8rem 2rem;
         border-radius: 50px;
         font-weight: 600;
         text-decoration: none;
         transition: all 0.3s;
         border: none;
         cursor: pointer;
-        font-size: 0.95rem;
+        font-size: 1rem;
     }
 
     .btn-primary {
@@ -239,20 +240,21 @@ const LandingPageStyles = () => (
 
     /* Section Styles */
     .landing-section {
-        padding: 70px 5%;
+        padding: 80px 4%;
         position: relative;
+        width: 100%;
     }
 
     .section-header {
         text-align: center;
-        margin-bottom: 3rem;
-        max-width: 700px;
+        margin-bottom: 4rem;
+        width: 100%;
         margin-left: auto;
         margin-right: auto;
     }
 
     .section-header h2 {
-        font-size: 2.5rem;
+        font-size: 2.8rem;
         margin-bottom: 1rem;
         color: #002868;
         font-weight: 800;
@@ -273,9 +275,9 @@ const LandingPageStyles = () => (
     }
 
     .section-header p {
-        font-size: 1.05rem;
+        font-size: 1.15rem;
         color: #666;
-        max-width: 600px;
+        max-width: 800px;
         margin: 1.5rem auto 0;
     }
 
@@ -286,16 +288,16 @@ const LandingPageStyles = () => (
 
     .features {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 1.5rem;
-        max-width: 1100px;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        width: 100%;
         margin: 0 auto;
     }
 
     .feature-card {
         background: white;
         border-radius: 12px;
-        padding: 2rem;
+        padding: 2.5rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         transition: all 0.3s;
         position: relative;
@@ -320,14 +322,14 @@ const LandingPageStyles = () => (
     }
 
     .feature-icon {
-        width: 60px;
-        height: 60px;
+        width: 70px;
+        height: 70px;
         background: linear-gradient(135deg, #0052A5, #0077BE);
-        border-radius: 12px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 1.2rem;
+        margin-bottom: 1.5rem;
         color: white;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         transition: all 0.3s;
@@ -338,20 +340,21 @@ const LandingPageStyles = () => (
     }
 
     .feature-card h3 {
-        font-size: 1.3rem;
-        margin-bottom: 0.8rem;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
         color: #333;
         font-weight: 700;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
     }
 
     .feature-card p {
         color: #666;
-        margin-bottom: 1.2rem;
+        margin-bottom: 1.5rem;
         flex-grow: 1;
-        font-size: 0.95rem;
+        font-size: 1rem;
+        line-height: 1.6;
     }
 
     .feature-link {
@@ -361,7 +364,7 @@ const LandingPageStyles = () => (
         display: inline-flex;
         align-items: center;
         transition: all 0.3s;
-        font-size: 0.9rem;
+        font-size: 1rem;
         background: none;
         border: none;
         padding: 0;
@@ -371,8 +374,8 @@ const LandingPageStyles = () => (
     .feature-link svg {
         margin-left: 6px;
         transition: all 0.3s;
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
     }
 
     .feature-link:hover svg {
@@ -388,18 +391,19 @@ const LandingPageStyles = () => (
         display: flex;
         justify-content: space-between;
         flex-wrap: wrap;
-        max-width: 1000px;
+        width: 100%;
         margin: 0 auto;
         position: relative;
+        gap: 2rem;
     }
 
-    @media (min-width: 768px) {
+    @media (min-width: 992px) {
         .process-steps::before {
             content: '';
             position: absolute;
-            top: 50px;
-            left: 10%;
-            right: 10%;
+            top: 60px;
+            left: 5%;
+            right: 5%;
             height: 3px;
             background: linear-gradient(90deg, #0077BE, #4A90E2);
             z-index: 0;
@@ -409,25 +413,25 @@ const LandingPageStyles = () => (
 
     .step {
         flex: 1;
-        min-width: 180px;
+        min-width: 250px;
         text-align: center;
         position: relative;
         z-index: 1;
-        padding: 0 10px;
+        padding: 0 15px;
         margin-bottom: 2rem;
     }
 
     .step-number {
-        width: 100px;
-        height: 100px;
+        width: 120px;
+        height: 120px;
         background: white;
-        border: 3px solid #0077BE;
+        border: 4px solid #0077BE;
         color: #0052A5;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2rem;
+        font-size: 2.5rem;
         font-weight: 800;
         margin: 0 auto 1.5rem;
         position: relative;
@@ -443,47 +447,48 @@ const LandingPageStyles = () => (
     }
 
     .step h3 {
-        font-size: 1.2rem;
-        margin-bottom: 0.8rem;
+        font-size: 1.4rem;
+        margin-bottom: 1rem;
         color: #333;
         font-weight: 700;
     }
 
     .step p {
         color: #666;
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
 
     /* Stats Section */
     .stats-section {
         background: linear-gradient(135deg, #002868, #0052A5);
         color: white;
-        padding: 60px 5%;
+        padding: 80px 4%;
+        width: 100%;
     }
 
     .stats-container {
         display: flex;
         justify-content: space-around;
         flex-wrap: wrap;
-        max-width: 900px;
+        width: 100%;
         margin: 0 auto;
-        gap: 2rem;
+        gap: 3rem;
     }
 
     .stat-item {
         text-align: center;
         padding: 1rem;
-        min-width: 180px;
+        min-width: 200px;
     }
 
     .stat-number {
-        font-size: 3rem;
+        font-size: 3.5rem;
         font-weight: 800;
         margin-bottom: 0.5rem;
     }
 
     .stat-label {
-        font-size: 1rem;
+        font-size: 1.2rem;
         opacity: 0.9;
         font-weight: 500;
     }
@@ -497,20 +502,21 @@ const LandingPageStyles = () => (
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 1.5rem;
-        max-width: 1100px;
+        gap: 2rem;
+        width: 100%;
         margin: 0 auto;
     }
 
     .testimonial-card {
         background: white;
         border-radius: 12px;
-        padding: 2rem;
+        padding: 2.5rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         width: 100%;
-        max-width: 350px;
+        max-width: 400px;
         position: relative;
         transition: all 0.3s;
+        flex: 1 1 350px;
     }
 
     .testimonial-card:hover {
@@ -524,7 +530,7 @@ const LandingPageStyles = () => (
         color: #333;
         position: relative;
         z-index: 1;
-        font-size: 1rem;
+        font-size: 1.1rem;
         line-height: 1.6;
     }
 
@@ -534,30 +540,30 @@ const LandingPageStyles = () => (
     }
 
     .author-avatar {
-        width: 50px;
-        height: 50px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
-        margin-right: 12px;
+        margin-right: 15px;
         object-fit: cover;
         border: 2px solid #e0e0e0;
     }
 
     .author-info h4 {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         margin-bottom: 0.2rem;
         color: #333;
         font-weight: 700;
     }
 
     .author-info p {
-        font-size: 0.85rem;
+        font-size: 0.95rem;
         color: #666;
     }
 
     .rating {
         color: #FFC627;
         margin-bottom: 1.2rem;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         display: flex;
         gap: 2px;
     }
@@ -571,8 +577,8 @@ const LandingPageStyles = () => (
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 1.5rem;
-        max-width: 1100px;
+        gap: 2rem;
+        width: 100%;
         margin: 0 auto;
     }
 
@@ -581,16 +587,17 @@ const LandingPageStyles = () => (
         border-radius: 12px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         width: 100%;
-        max-width: 320px;
+        max-width: 380px;
         overflow: hidden;
         transition: all 0.3s;
         position: relative;
         display: flex;
         flex-direction: column;
+        flex: 1 1 320px;
     }
 
     .pricing-card.featured {
-        transform: scale(1.03);
+        transform: scale(1.05);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         border: 2px solid #0077BE;
         z-index: 2;
@@ -605,7 +612,7 @@ const LandingPageStyles = () => (
         color: white;
         padding: 4px 35px;
         transform: rotate(45deg);
-        font-size: 0.75rem;
+        font-size: 0.85rem;
         font-weight: 600;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         z-index: 1;
@@ -617,41 +624,41 @@ const LandingPageStyles = () => (
     }
 
     .pricing-card.featured:hover {
-        transform: scale(1.03) translateY(-8px);
+        transform: scale(1.05) translateY(-8px);
     }
 
     .pricing-header {
         background: linear-gradient(135deg, #0052A5, #0077BE);
         color: white;
-        padding: 2rem 1.5rem;
+        padding: 2.5rem 1.5rem;
         text-align: center;
     }
 
     .pricing-title {
-        font-size: 1.5rem;
+        font-size: 1.8rem;
         margin-bottom: 0.5rem;
         font-weight: 700;
     }
 
     .pricing-price {
-        font-size: 3rem;
+        font-size: 3.5rem;
         font-weight: 800;
         margin-bottom: 0.5rem;
     }
 
     .pricing-price span {
-        font-size: 0.9rem;
+        font-size: 1rem;
         font-weight: 400;
         opacity: 0.8;
     }
 
     .pricing-description {
         opacity: 0.9;
-        font-size: 0.85rem;
+        font-size: 1rem;
     }
 
     .pricing-body {
-        padding: 2rem 1.5rem;
+        padding: 2.5rem 2rem;
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -659,24 +666,24 @@ const LandingPageStyles = () => (
 
     .pricing-features {
         list-style: none;
-        margin-bottom: 1.5rem;
+        margin-bottom: 2rem;
         flex: 1;
     }
 
     .pricing-features li {
-        margin-bottom: 1rem;
+        margin-bottom: 1.2rem;
         display: flex;
         align-items: flex-start;
-        font-size: 0.9rem;
+        font-size: 1rem;
         color: #555;
     }
 
     .pricing-features svg {
         color: #0077BE;
-        margin-right: 10px;
-        margin-top: 2px;
-        width: 16px;
-        height: 16px;
+        margin-right: 12px;
+        margin-top: 3px;
+        width: 18px;
+        height: 18px;
         flex-shrink: 0;
     }
 
@@ -686,14 +693,15 @@ const LandingPageStyles = () => (
     }
 
     .faq-container {
-        max-width: 750px;
+        width: 100%;
+        max-width: 900px;
         margin: 0 auto;
     }
 
     .faq-item {
         background: white;
         border-radius: 12px;
-        margin-bottom: 0.8rem;
+        margin-bottom: 1rem;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         overflow: hidden;
         transition: all 0.3s;
@@ -704,14 +712,14 @@ const LandingPageStyles = () => (
     }
 
     .faq-question {
-        padding: 1.2rem 1.5rem;
+        padding: 1.5rem 2rem;
         font-weight: 600;
         cursor: pointer;
         display: flex;
         justify-content: space-between;
         align-items: center;
         color: #333;
-        font-size: 1rem;
+        font-size: 1.1rem;
         transition: all 0.3s;
         border: none;
         background: none;
@@ -726,8 +734,8 @@ const LandingPageStyles = () => (
     .faq-question svg {
         transition: all 0.3s;
         color: #0052A5;
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
     }
 
     .faq-item.active .faq-question svg {
@@ -735,16 +743,17 @@ const LandingPageStyles = () => (
     }
 
     .faq-answer {
-        padding: 0 1.5rem;
+        padding: 0 2rem;
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.3s ease, padding 0.3s ease;
         color: #666;
-        font-size: 0.9rem;
+        font-size: 1rem;
+        line-height: 1.6;
     }
 
     .faq-item.active .faq-answer {
-        padding: 0 1.5rem 1.2rem;
+        padding: 0 2rem 1.5rem;
         max-height: 500px;
     }
 
@@ -752,27 +761,27 @@ const LandingPageStyles = () => (
     .landing-footer {
         background-color: #0A0E27;
         color: white;
-        padding: 3rem 5% 1.5rem;
+        padding: 4rem 4% 2rem;
     }
 
     .footer-content {
         display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
-        max-width: 1100px;
+        width: 100%;
         margin: 0 auto;
     }
 
     .footer-section {
         flex: 1;
-        min-width: 220px;
-        margin-bottom: 1.5rem;
-        padding-right: 1.5rem;
+        min-width: 250px;
+        margin-bottom: 2rem;
+        padding-right: 2rem;
     }
 
     .footer-section h3 {
-        font-size: 1.2rem;
-        margin-bottom: 1.2rem;
+        font-size: 1.3rem;
+        margin-bottom: 1.5rem;
         color: white;
         font-weight: 700;
         position: relative;
@@ -782,7 +791,7 @@ const LandingPageStyles = () => (
     .footer-section h3::after {
         content: '';
         position: absolute;
-        width: 25px;
+        width: 30px;
         height: 3px;
         background: linear-gradient(90deg, #0052A5, #0077BE);
         bottom: -6px;
@@ -792,9 +801,9 @@ const LandingPageStyles = () => (
 
     .footer-section p {
         color: rgba(255, 255, 255, 0.7);
-        margin-bottom: 1.2rem;
+        margin-bottom: 1.5rem;
         line-height: 1.6;
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
 
     .footer-section ul {
@@ -804,7 +813,7 @@ const LandingPageStyles = () => (
     }
 
     .footer-section ul li {
-        margin-bottom: 0.6rem;
+        margin-bottom: 0.8rem;
     }
 
     .footer-section ul li button, .footer-section ul li a {
@@ -813,7 +822,7 @@ const LandingPageStyles = () => (
         transition: all 0.3s;
         display: inline-block;
         position: relative;
-        font-size: 0.9rem;
+        font-size: 1rem;
         background: none;
         border: none;
         padding: 0;
@@ -826,21 +835,21 @@ const LandingPageStyles = () => (
 
     .social-links {
         display: flex;
-        gap: 0.8rem;
-        margin-top: 1.2rem;
+        gap: 1rem;
+        margin-top: 1.5rem;
     }
 
     .social-links a {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 40px;
+        width: 45px;
+        height: 45px;
         background-color: rgba(255, 255, 255, 0.1);
         border-radius: 50%;
         color: white;
         transition: all 0.3s;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
     }
 
     .social-links a:hover {
@@ -850,15 +859,15 @@ const LandingPageStyles = () => (
 
     .footer-bottom {
         text-align: center;
-        padding-top: 1.5rem;
-        margin-top: 1.5rem;
+        padding-top: 2rem;
+        margin-top: 2rem;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
         color: rgba(255, 255, 255, 0.5);
-        font-size: 0.85rem;
+        font-size: 0.9rem;
     }
 
     /* Responsive */
-    @media (max-width: 768px) {
+    @media (max-width: 992px) {
         .mobile-menu-toggle {
             display: block;
         }
@@ -900,38 +909,33 @@ const LandingPageStyles = () => (
         }
 
         .hero h1 {
-            font-size: 2.3rem;
+            font-size: 2.8rem;
         }
 
         .hero p {
-            font-size: 1rem;
+            font-size: 1.1rem;
         }
 
         .pricing-card.featured {
             transform: scale(1);
         }
+        
+        .pricing-card {
+            max-width: 100%;
+        }
     }
 
     @media (max-width: 576px) {
         .hero h1 {
-            font-size: 1.9rem;
+            font-size: 2.2rem;
         }
         
         .section-header h2 {
-            font-size: 1.9rem;
+            font-size: 2rem;
         }
         
         .features {
             grid-template-columns: 1fr;
-        }
-        
-        .pricing-container {
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .pricing-card {
-            max-width: 100%;
         }
     }
   `}</style>
@@ -1014,7 +1018,7 @@ export const AuthScreen: React.FC = () => {
             </button>
             <nav>
                 <ul className={`nav-menu ${mobileMenuOpen ? 'active' : ''}`}>
-                    <li><button onClick={() => scrollTo('features')}>Platform</button></li>
+                    <li><button onClick={() => scrollTo('features')}>Features</button></li>
                     <li><button onClick={() => scrollTo('how-it-works')}>How It Works</button></li>
                     <li><button onClick={() => scrollTo('pricing')}>Pricing</button></li>
                     <li><button onClick={() => scrollTo('testimonials')}>Reviews</button></li>
@@ -1180,15 +1184,15 @@ export const AuthScreen: React.FC = () => {
             {/* One-Time Form */}
             <div className="pricing-card">
                 <div className="pricing-header">
-                    <h3 className="pricing-title">Pay-Per-Form</h3>
+                    <h3 className="pricing-title">One-Time Form</h3>
                     <div className="pricing-price">$29<span>/form</span></div>
                     <p className="pricing-description">Perfect for single applications</p>
                 </div>
                 <div className="pricing-body">
                     <ul className="pricing-features">
-                        <li><Check /> Single Form Access</li>
+                        <li><Check /> Single Form Access (e.g. I-130)</li>
                         <li><Check /> Real-time Error Checking</li>
-                        <li><Check /> AI Validation</li>
+                        <li><Check /> AI Field Validation</li>
                         <li><Check /> PDF Export</li>
                     </ul>
                     <button onClick={() => setShowLogin(true)} className="btn btn-primary" style={{width: '100%'}}>Buy Now</button>
@@ -1204,11 +1208,11 @@ export const AuthScreen: React.FC = () => {
                 </div>
                 <div className="pricing-body">
                     <ul className="pricing-features">
-                        <li><Check /> <strong>Unlimited</strong> Form Assistant</li>
-                        <li><Check /> <strong>Unlimited</strong> RFE Decoder</li>
-                        <li><Check /> Strategy Advisor Chat</li>
-                        <li><Check /> Interview Simulator</li>
+                        <li><Check /> <strong>Everything in Monthly</strong></li>
+                        <li><Check /> 40% Discount</li>
                         <li><Check /> Priority Support</li>
+                        <li><Check /> Unlimited Document Storage</li>
+                        <li><Check /> Full RFE & Interview Access</li>
                     </ul>
                     <button onClick={() => setShowLogin(true)} className="btn btn-primary" style={{width: '100%'}}>Start Free Trial</button>
                 </div>
@@ -1219,15 +1223,15 @@ export const AuthScreen: React.FC = () => {
                 <div className="pricing-header">
                     <h3 className="pricing-title">Monthly Pro</h3>
                     <div className="pricing-price">$49.99<span>/mo</span></div>
-                    <p className="pricing-description">Flexible, cancel anytime</p>
+                    <p className="pricing-description">Cancel anytime</p>
                 </div>
                 <div className="pricing-body">
                     <ul className="pricing-features">
                         <li><Check /> Unlimited Form Assistant</li>
-                        <li><Check /> RFE Decoder & Response Gen</li>
+                        <li><Check /> RFE Decoder (AI Analysis)</li>
                         <li><Check /> Strategy Advisor Chat</li>
                         <li><Check /> Interview Simulator</li>
-                        <li><Check /> Document Vault</li>
+                        <li><Check /> Legal Cover Letter Generator</li>
                     </ul>
                     <button onClick={() => setShowLogin(true)} className="btn btn-primary" style={{width: '100%'}}>Subscribe</button>
                 </div>
