@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Modality, FunctionDeclaration } from "@google/genai";
-import { RFEAnalysis, FormFieldHelp, ValidationResult, Language, PredictionResult, CaseLawResult, InterviewFeedback } from "../types";
+import { RFEAnalysis, FormFieldHelp, ValidationResult, Language, PredictionResult, CaseLawResult, InterviewFeedback, RiskProfile } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -93,6 +93,10 @@ You have access to the following internal application structure and data.
 11. **Knowledge Center** ('knowledge'):
     - FREE official forms, fee schedules, and processing times.
     - Use this for "download I-130", "how much is the fee", "application cost", "processing time", "official forms".
+
+12. **Risk Analyzer** ('risk'):
+    - Pre-filing risk assessment, denial probability check, red flag scanner.
+    - Use this for "check my case", "am I eligible", "will I get denied", "risk check".
 
 ${MOCK_FORMS_DATA}
 
@@ -353,6 +357,58 @@ export const predictCaseTimeline = async (
     } catch(e) {
         console.error("Prediction Error", e);
         throw new Error("Could not predict case timeline.");
+    }
+}
+
+export const analyzeCaseRisk = async (
+    caseData: any,
+    lang: Language = 'en'
+): Promise<RiskProfile> => {
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview", // Use Pro for complex reasoning
+            contents: `Act as a conservative Immigration Attorney. Analyze the following case facts for potential denial risks, inadmissibility issues, or "Red Flags".
+            
+            Case Data: ${JSON.stringify(caseData)}
+            
+            Rules:
+            1. Be strict. If income is below 125% FPL (~$25k for household of 2), flag it as High Risk.
+            2. If there is ANY criminal history, flag as Critical/High Risk.
+            3. If entry was Illegal/EWI (Entry Without Inspection) and they are applying for Adjustment (I-485), flag as Critical/High Risk (requires waiver).
+            4. If marriage is < 2 years, warn about Conditional Residency (CR1).
+            
+            Return JSON in ${lang}:
+            - approvalOdds: number (0-100)
+            - riskLevel: "Low" | "Medium" | "High" | "Critical"
+            - redFlags: List of serious issues that could lead to denial.
+            - warnings: List of minor issues or things to watch out for.
+            - strengths: List of positive factors.
+            - actionPlan: List of specific steps to mitigate risks.
+            `,
+            config: {
+                systemInstruction: getSystemInstruction(lang),
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        approvalOdds: { type: Type.NUMBER },
+                        riskLevel: { type: Type.STRING, enum: ["Low", "Medium", "High", "Critical"] },
+                        redFlags: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        warnings: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        actionPlan: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    },
+                    required: ["approvalOdds", "riskLevel", "redFlags", "warnings", "strengths", "actionPlan"]
+                }
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No response from AI");
+        return JSON.parse(text) as RiskProfile;
+    } catch (e) {
+        console.error("Risk Analysis Error", e);
+        throw new Error("Could not analyze case risk.");
     }
 }
 
@@ -633,6 +689,9 @@ ${getBaseSystemInstruction(lang)}
    - Example User: "How much is the filing fee?" or "Download I-130"
    - Example You: "I can show you the official fees and forms. [[NAVIGATE:knowledge]]"
 
+   - Example User: "Check my risk" or "Will I be denied?"
+   - Example You: "Let's run a pre-filing risk assessment. [[NAVIGATE:risk]]"
+
 3. If the user asks about a SPECIFIC ATTORNEY listed in the data (e.g., "Sarah Chen"), tell them you found her profile and Navigate to 'marketplace'.
    - Example: "Yes, Sarah Chen is available. Opening her profile... [[NAVIGATE:marketplace]]"
 `;
@@ -655,7 +714,7 @@ const navigationTool: FunctionDeclaration = {
       view: {
         type: Type.STRING,
         description: "The view ID to navigate to.",
-        enum: ['dashboard', 'forms', 'documents', 'letters', 'rfe', 'strategy', 'marketplace', 'translations', 'caselaw', 'interview', 'knowledge']
+        enum: ['dashboard', 'forms', 'documents', 'letters', 'rfe', 'strategy', 'marketplace', 'translations', 'caselaw', 'interview', 'knowledge', 'risk']
       },
     },
     required: ['view'],

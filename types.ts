@@ -119,3 +119,12 @@ export interface InterviewFeedback {
   redFlags: string[];
   confidenceTips: string;
 }
+
+export interface RiskProfile {
+  approvalOdds: number; // 0-100
+  riskLevel: 'Low' | 'Medium' | 'High' | 'Critical';
+  redFlags: string[];
+  warnings: string[];
+  strengths: string[];
+  actionPlan: string[];
+}

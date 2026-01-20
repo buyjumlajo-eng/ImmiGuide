@@ -13,6 +13,7 @@ import { CaseLawExplorer } from './components/CaseLawExplorer';
 import { InterviewSimulator } from './components/InterviewSimulator';
 import { KnowledgeCenter } from './components/KnowledgeCenter';
 import { AttorneyOnboarding } from './components/AttorneyOnboarding'; 
+import { RiskAnalyzer } from './components/RiskAnalyzer';
 import { Paywall } from './components/Paywall'; 
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -23,7 +24,7 @@ import { Loader2 } from 'lucide-react';
 import { SubscriptionTier } from './types';
 
 // Updated view router state
-export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' | 'strategy' | 'marketplace' | 'translations' | 'admin' | 'caselaw' | 'interview' | 'knowledge' | 'attorney-signup';
+export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' | 'strategy' | 'marketplace' | 'translations' | 'admin' | 'caselaw' | 'interview' | 'knowledge' | 'attorney-signup' | 'risk';
 
 const InnerApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>('dashboard');
@@ -48,7 +49,7 @@ const InnerApp: React.FC = () => {
       if (view === 'admin') return true;
       if (view === 'attorney-signup') return true; 
       
-      if (view === 'dashboard' || view === 'marketplace' || view === 'knowledge') return true;
+      if (view === 'dashboard' || view === 'marketplace' || view === 'knowledge' || view === 'risk') return true;
 
       if (tier === 'one_form') {
           return view === 'forms';
@@ -111,6 +112,8 @@ const InnerApp: React.FC = () => {
         return <InterviewSimulator />;
       case 'knowledge':
         return <KnowledgeCenter />;
+      case 'risk':
+        return <RiskAnalyzer />;
       case 'attorney-signup':
         return <AttorneyOnboarding onViewChange={setCurrentView} />;
       default:
