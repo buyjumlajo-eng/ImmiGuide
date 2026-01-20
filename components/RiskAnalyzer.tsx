@@ -42,9 +42,9 @@ export const RiskAnalyzer: React.FC = () => {
       try {
           const profile = await analyzeCaseRisk(formData, language);
           setResult(profile);
-      } catch (e) {
+      } catch (e: any) {
           console.error(e);
-          alert("Failed to analyze risk.");
+          alert(e.message || "Failed to analyze risk.");
       } finally {
           setIsAnalyzing(false);
       }

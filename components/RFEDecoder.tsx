@@ -280,7 +280,6 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
     setShowLetter(false);
     setIsRestored(false);
     localStorage.removeItem('immi_rfe_state');
-    // Removed setCaseNumber('') to persist case number across analyses
     
     try {
       let result;
@@ -294,8 +293,8 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
           result = await analyzeRFE(inputText, language);
       }
       setAnalysis(result);
-    } catch (e) {
-      alert("Failed to analyze. Please ensure the content is valid.");
+    } catch (e: any) {
+      alert(e.message || "Failed to analyze. Please ensure the content is valid.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -319,8 +318,8 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
         const letter = await generateRFEResponse(input, analysis, language, caseNumber);
         setGeneratedLetter(letter);
         setShowLetter(true);
-    } catch (e) {
-        alert("Failed to generate response letter.");
+    } catch (e: any) {
+        alert(e.message || "Failed to generate response letter.");
     } finally {
         setIsGeneratingLetter(false);
     }

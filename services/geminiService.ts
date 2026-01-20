@@ -3,6 +3,36 @@ import { RFEAnalysis, FormFieldHelp, ValidationResult, Language, PredictionResul
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+// --- Rate Limiting Logic ---
+type RequestCategory = 'heavy' | 'light' | 'session';
+
+const RATE_CONFIG: Record<RequestCategory, { max: number; window: number }> = {
+    heavy: { max: 5, window: 60000 }, // 5 per minute (Analysis, Letters, Translations)
+    light: { max: 40, window: 60000 }, // 40 per minute (Chat tokens, Validation)
+    session: { max: 10, window: 3600000 } // 10 per hour (Live Voice Sessions)
+};
+
+const checkRateLimit = (category: RequestCategory) => {
+    const key = `visaguide_limit_${category}`;
+    const now = Date.now();
+    const stored = localStorage.getItem(key);
+    
+    let tracker = stored ? JSON.parse(stored) : { count: 0, startTime: now };
+    
+    // Reset if window passed
+    if (now - tracker.startTime > RATE_CONFIG[category].window) {
+        tracker = { count: 0, startTime: now };
+    }
+    
+    if (tracker.count >= RATE_CONFIG[category].max) {
+        const waitSec = Math.ceil((RATE_CONFIG[category].window - (now - tracker.startTime)) / 1000);
+        throw new Error(`Rate limit exceeded. Please wait ${waitSec} seconds.`);
+    }
+    
+    tracker.count++;
+    localStorage.setItem(key, JSON.stringify(tracker));
+};
+
 // --- Mock Site Contents for RAG ---
 // This data mirrors the application state to give the AI "Full Site Awareness"
 
@@ -125,6 +155,8 @@ export type GeminiInput = string | { mimeType: string, data: string };
 
 export const analyzeRFE = async (input: GeminiInput, lang: Language = 'en'): Promise<RFEAnalysis> => {
   try {
+    checkRateLimit('heavy'); // Rate Limit Check
+
     const promptText = `Analyze this USCIS Request for Evidence (RFE) or Notice. 
       Break it down into:
       1. A simple summary of what they actually want.
@@ -168,8 +200,9 @@ export const analyzeRFE = async (input: GeminiInput, lang: Language = 'en'): Pro
     const text = response.text;
     if (!text) throw new Error("No response from AI");
     return JSON.parse(text) as RFEAnalysis;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini RFE Error:", error);
+    if (error.message?.includes("Rate limit")) throw error;
     throw new Error("Failed to analyze RFE. Please try again.");
   }
 };
@@ -181,6 +214,8 @@ export const generateRFEResponse = async (
     caseNumber?: string
 ): Promise<string> => {
   try {
+    checkRateLimit('heavy'); // Rate Limit Check
+
     const promptIntro = `
       You are an expert immigration attorney assistant. 
       Based on the provided USCIS RFE document/text and our analysis of it, draft a formal, professional response letter in ENGLISH (USCIS requires English).
@@ -215,8 +250,9 @@ export const generateRFEResponse = async (
     });
     
     return response.text || "Could not generate letter.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Letter Gen Error:", error);
+    if (error.message?.includes("Rate limit")) throw error;
     throw new Error("Failed to generate response letter.");
   }
 };
@@ -233,6 +269,8 @@ export const generateCoverLetter = async (
     lang: Language = 'en'
 ): Promise<string> => {
     try {
+        checkRateLimit('heavy'); // Rate Limit Check
+
         const evidenceText = params.evidenceCategories.map((cat, index) => {
             return `Section/Exhibit ${String.fromCharCode(65 + index)}: ${cat.category}\n` + 
                    cat.items.map(item => `   - ${item}`).join('\n');
@@ -272,8 +310,9 @@ export const generateCoverLetter = async (
             }
         });
         return response.text || "Failed to generate letter";
-    } catch(e) {
+    } catch(e: any) {
         console.error("Letter Gen Error", e);
+        if (e.message?.includes("Rate limit")) throw e;
         throw new Error("Could not generate cover letter.");
     }
 }
@@ -283,6 +322,8 @@ export const translateDocument = async (
     targetLang: string
 ): Promise<string> => {
     try {
+        checkRateLimit('heavy'); // Rate Limit Check
+
         const promptText = `
         Translate the following document content into ${targetLang}.
         
@@ -310,8 +351,9 @@ export const translateDocument = async (
         });
 
         return response.text || "Translation failed.";
-    } catch (e) {
+    } catch (e: any) {
         console.error("Translation Error", e);
+        if (e.message?.includes("Rate limit")) throw e;
         throw new Error("Could not translate document.");
     }
 };
@@ -321,6 +363,8 @@ export const predictCaseTimeline = async (
     lang: Language = 'en'
 ): Promise<PredictionResult> => {
     try {
+        checkRateLimit('heavy'); // Rate Limit Check
+
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: `Predict the estimated approval date for this immigration case based on typical processing times.
@@ -354,8 +398,9 @@ export const predictCaseTimeline = async (
         const text = response.text;
         if (!text) throw new Error("No response");
         return JSON.parse(text) as PredictionResult;
-    } catch(e) {
+    } catch(e: any) {
         console.error("Prediction Error", e);
+        if (e.message?.includes("Rate limit")) throw e;
         throw new Error("Could not predict case timeline.");
     }
 }
@@ -365,6 +410,8 @@ export const analyzeCaseRisk = async (
     lang: Language = 'en'
 ): Promise<RiskProfile> => {
     try {
+        checkRateLimit('heavy'); // Rate Limit Check
+
         const response = await ai.models.generateContent({
             model: "gemini-3-pro-preview", // Use Pro for complex reasoning
             contents: `Act as a conservative Immigration Attorney. Analyze the following case facts for potential denial risks, inadmissibility issues, or "Red Flags".
@@ -406,14 +453,17 @@ export const analyzeCaseRisk = async (
         const text = response.text;
         if (!text) throw new Error("No response from AI");
         return JSON.parse(text) as RiskProfile;
-    } catch (e) {
+    } catch (e: any) {
         console.error("Risk Analysis Error", e);
+        if (e.message?.includes("Rate limit")) throw e;
         throw new Error("Could not analyze case risk.");
     }
 }
 
 export const getFieldHelp = async (question: string, context?: string, lang: Language = 'en'): Promise<FormFieldHelp> => {
   try {
+    checkRateLimit('light'); // Rate Limit Check
+
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `The user is stuck on this USCIS form question: "${question}".
@@ -441,8 +491,15 @@ export const getFieldHelp = async (question: string, context?: string, lang: Lan
      const text = response.text;
     if (!text) throw new Error("No response from AI");
     return JSON.parse(text) as FormFieldHelp;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Form Help Error:", error);
+    if (error.message?.includes("Rate limit")) {
+        return {
+            plainEnglish: "You are requesting help too quickly. Please wait a moment.",
+            risks: ["Rate limit reached."],
+            example: "N/A"
+        };
+    }
     return {
       plainEnglish: "We couldn't load the AI help right now.",
       risks: ["Please consult an attorney if you are unsure."],
@@ -458,6 +515,8 @@ export const validateFormInput = async (
   lang: Language = 'en'
 ): Promise<ValidationResult> => {
   try {
+    checkRateLimit('light'); // Rate Limit Check
+
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Act as a strict USCIS Immigration Officer reviewing a form application. 
@@ -499,8 +558,15 @@ export const validateFormInput = async (
     const text = response.text;
     if (!text) throw new Error("No response from AI");
     return JSON.parse(text) as ValidationResult;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Validation Error:", error);
+    if (error.message?.includes("Rate limit")) {
+        return {
+            isValid: true,
+            message: "Rate limit. Checking paused.",
+            severity: "warning"
+        }
+    }
     return {
       isValid: true, // Default to true if AI fails to avoid blocking user
       message: "Could not validate at this time.",
@@ -511,6 +577,8 @@ export const validateFormInput = async (
 
 export const searchCaseLaw = async (query: string, lang: Language = 'en'): Promise<CaseLawResult[]> => {
     try {
+        checkRateLimit('heavy'); // Rate Limit Check
+
         const response = await ai.models.generateContent({
             model: "gemini-3-pro-preview",
             contents: `Act as a legal researcher specialized in US Immigration Law (BIA, 9th Circuit, Supreme Court).
@@ -553,8 +621,9 @@ export const searchCaseLaw = async (query: string, lang: Language = 'en'): Promi
         const text = response.text;
         if (!text) throw new Error("No response");
         return JSON.parse(text) as CaseLawResult[];
-    } catch (e) {
+    } catch (e: any) {
         console.error("Case Law Error", e);
+        if (e.message?.includes("Rate limit")) throw e;
         return [];
     }
 };
@@ -565,6 +634,8 @@ export const getInterviewQuestion = async (
     lang: Language = 'en'
 ): Promise<string> => {
     try {
+        checkRateLimit('light'); // Rate Limit Check
+
         const chat = ai.chats.create({
             model: "gemini-3-flash-preview",
             config: {
@@ -585,8 +656,9 @@ export const getInterviewQuestion = async (
 
         const response = await chat.sendMessage({ message: "Continue the interview or start if new." });
         return response.text || "Could you please repeat that?";
-    } catch (e) {
+    } catch (e: any) {
         console.error("Interview Error", e);
+        if (e.message?.includes("Rate limit")) throw e;
         return "Let's move to the next topic.";
     }
 };
@@ -596,6 +668,8 @@ export const getInterviewFeedback = async (
     lang: Language = 'en'
 ): Promise<InterviewFeedback> => {
     try {
+        checkRateLimit('heavy'); // Rate Limit Check
+
         const response = await ai.models.generateContent({
             model: "gemini-3-pro-preview",
             contents: `Analyze this transcript of a simulated USCIS Immigration Interview.
@@ -632,13 +706,15 @@ export const getInterviewFeedback = async (
         const text = response.text;
         if (!text) throw new Error("No response");
         return JSON.parse(text) as InterviewFeedback;
-    } catch (e) {
+    } catch (e: any) {
         console.error("Feedback Error", e);
+        if (e.message?.includes("Rate limit")) throw e;
         throw new Error("Could not generate feedback.");
     }
 };
 
 export const getStrategyStream = async (history: {role: string, parts: {text: string}[]}[], message: string, lang: Language = 'en') => {
+    checkRateLimit('light'); // Rate Limit Check
     const chat = ai.chats.create({
         model: "gemini-3-pro-preview", 
         config: {
@@ -722,6 +798,7 @@ const navigationTool: FunctionDeclaration = {
 };
 
 export const getSupportChatStream = async (history: {role: string, parts: {text: string}[]}[], message: string, lang: Language = 'en') => {
+    checkRateLimit('light'); // Rate Limit Check
     const chat = ai.chats.create({
         model: "gemini-3-pro-preview", 
         config: {
@@ -747,6 +824,7 @@ export const connectToLiveSession = async (
     onError: (error: ErrorEvent) => void;
   }
 ) => {
+  checkRateLimit('session'); // Rate Limit Check
   return await ai.live.connect({
     model: 'gemini-2.5-flash-native-audio-preview-12-2025',
     callbacks: {

@@ -20,6 +20,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import { AuthScreen } from './components/AuthScreen';
 import { LegalModal } from './components/LegalModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 import { SubscriptionTier } from './types';
 import { trackEvent } from './services/analytics';
@@ -145,13 +146,15 @@ const InnerApp: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <DataProvider>
-        <LanguageProvider>
-          <InnerApp />
-        </LanguageProvider>
-      </DataProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <DataProvider>
+          <LanguageProvider>
+            <InnerApp />
+          </LanguageProvider>
+        </DataProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

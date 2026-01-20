@@ -74,8 +74,8 @@ export const TranslationCenter: React.FC = () => {
               targetLang
           );
           setAiResult(result);
-      } catch (e) {
-          alert("Translation failed. Please try again.");
+      } catch (e: any) {
+          alert(e.message || "Translation failed. Please try again.");
       } finally {
           setIsProcessing(false);
       }

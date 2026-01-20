@@ -152,8 +152,9 @@ export const LetterGenerator: React.FC = () => {
           }, language);
           setLetter(result);
           setStep(3);
-      } catch (e) {
+      } catch (e: any) {
           console.error(e);
+          alert(e.message || "Failed to generate letter");
       } finally {
           setIsGenerating(false);
       }

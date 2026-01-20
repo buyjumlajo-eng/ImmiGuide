@@ -2,9 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { initAnalytics } from './services/analytics';
+import { initErrorLogging } from './services/errorLogging';
 
-// Initialize PostHog Analytics
+// Initialize Analytics & Error Logging
 initAnalytics();
+initErrorLogging();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
