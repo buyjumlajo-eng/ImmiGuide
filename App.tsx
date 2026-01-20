@@ -22,6 +22,7 @@ import { AuthScreen } from './components/AuthScreen';
 import { LegalModal } from './components/LegalModal';
 import { Loader2 } from 'lucide-react';
 import { SubscriptionTier } from './types';
+import { trackEvent } from './services/analytics';
 
 // Updated view router state
 export type ViewState = 'dashboard' | 'forms' | 'documents' | 'letters' | 'rfe' | 'strategy' | 'marketplace' | 'translations' | 'admin' | 'caselaw' | 'interview' | 'knowledge' | 'attorney-signup' | 'risk';
@@ -39,9 +40,20 @@ const InnerApp: React.FC = () => {
       }
   }, []);
 
+  // Track Page Views
+  useEffect(() => {
+      if (isAuthenticated) {
+          trackEvent('$pageview', { 
+              $current_url: window.location.href + '/' + currentView,
+              view: currentView 
+          });
+      }
+  }, [currentView, isAuthenticated]);
+
   const handleAcceptTerms = () => {
       localStorage.setItem('visaguide_tos_accepted', 'true');
       setTermsAccepted(true);
+      trackEvent('terms_accepted');
   };
 
   // Helper to check if user has access to a specific view
@@ -86,6 +98,7 @@ const InnerApp: React.FC = () => {
   const renderView = () => {
     // Check permissions
     if (!hasAccess(currentView, user?.subscriptionTier)) {
+        trackEvent('paywall_hit', { view: currentView });
         return <Paywall />;
     }
 

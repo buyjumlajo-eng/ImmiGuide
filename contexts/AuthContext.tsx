@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, SubscriptionTier } from '../types';
+import { identifyUser, resetAnalytics, trackEvent } from '../services/analytics';
 
 interface AuthContextType {
   user: User | null;
@@ -32,11 +33,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const storedTier = localStorage.getItem('immi_sub_tier') as SubscriptionTier;
 
     if (storedAuth) {
-      setUser({
+      const u = {
           ...MOCK_USER,
           // Use stored tier if available, otherwise default to free
           subscriptionTier: storedTier || 'free'
-      });
+      };
+      setUser(u);
+      // Identify existing session
+      identifyUser(u.id, { email: u.email, subscription_tier: u.subscriptionTier });
     }
     setIsLoading(false);
   }, []);
@@ -48,17 +52,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('immi_auth_token', 'mock_token_123');
       
       const storedTier = localStorage.getItem('immi_sub_tier') as SubscriptionTier;
-      setUser({
+      const u = {
           ...MOCK_USER,
           subscriptionTier: storedTier || 'free'
-      });
+      };
+      setUser(u);
+      
+      // PostHog Identify
+      identifyUser(u.id, { email: u.email, subscription_tier: u.subscriptionTier });
+      trackEvent('login_success');
+      
       setIsLoading(false);
     }, 800);
   };
 
   const logout = () => {
+    trackEvent('logout');
     localStorage.removeItem('immi_auth_token');
     setUser(null);
+    resetAnalytics();
   };
 
   const upgradeSubscription = async (tier: SubscriptionTier) => {
@@ -69,6 +81,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   const updatedUser = { ...user, subscriptionTier: tier };
                   setUser(updatedUser);
                   localStorage.setItem('immi_sub_tier', tier);
+                  trackEvent('subscription_upgrade', { new_tier: tier });
+                  identifyUser(user.id, { subscription_tier: tier });
               }
               resolve();
           }, 1500);
