@@ -1,5 +1,5 @@
 
-export type Language = 'en' | 'es' | 'zh' | 'ar';
+export type Language = 'en' | 'es' | 'zh' | 'ar' | 'fr' | 'pt' | 'hi';
 
 export type SubscriptionTier = 'free' | 'one_form' | 'monthly' | 'annual';
 
@@ -88,6 +88,7 @@ export interface StoredDocument {
   encryptedData?: string; // Base64 ciphertext
   iv?: string; // Initialization vector
   isEncrypted?: boolean;
+  storagePath?: string;
 }
 
 export interface PredictionResult {

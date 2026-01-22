@@ -142,12 +142,24 @@ ${MOCK_ATTORNEYS_DATA}
 - Emergency: Go to Marketplace for legal counsel.
 `;
 
+const getLanguageName = (lang: Language) => {
+    switch (lang) {
+        case 'zh': return 'Chinese (Simplified)';
+        case 'es': return 'Spanish';
+        case 'ar': return 'Arabic';
+        case 'fr': return 'French';
+        case 'pt': return 'Portuguese';
+        case 'hi': return 'Hindi';
+        default: return 'English';
+    }
+};
+
 const getSystemInstruction = (lang: Language) => `
 You are Visa Guide AI, a specialized US Immigration assistant. 
 Your goal is to reduce anxiety and prevent errors for immigrants.
 You are NOT a lawyer and cannot give legal advice, but you provide legal information, strategy, and plain-english translations of complex USCIS terms.
 Always be empathetic, clear, and structured.
-IMPORTANT: You MUST interact with the user in ${lang === 'zh' ? 'Chinese (Simplified)' : lang === 'es' ? 'Spanish' : lang === 'ar' ? 'Arabic' : 'English'}.
+IMPORTANT: You MUST interact with the user in ${getLanguageName(lang)}.
 All output, including JSON values, validation messages, and chat responses, must be in this language unless specifically asked otherwise.
 `;
 
@@ -263,7 +275,7 @@ export const generateCoverLetter = async (
         petitionerStatus: string, 
         beneficiary: string, 
         formType: string, 
-        serviceCenter: string,
+        serviceCenter: string, 
         evidenceCategories: { category: string, items: string[] }[]
     },
     lang: Language = 'en'
@@ -645,7 +657,7 @@ export const getInterviewQuestion = async (
                 Start the conversation if history is empty.
                 If the user answers, follow up logically or move to the next standard question.
                 Keep questions short and spoken-style.
-                Language: ${lang === 'es' ? 'Spanish' : 'English'} (USCIS interviews are usually English, but use ${lang} if simulating an interpreter scenario or requested).
+                Language: ${getLanguageName(lang)}.
                 `,
             },
             history: history.map(h => ({
@@ -739,7 +751,7 @@ You MUST use the provided [NAVIGATION & FEATURES MAP] and [SITE CONTENTS] to ans
 ${MOCK_SITE_CONTENTS}
 
 **Response Rules**:
-- Respond in ${lang === 'zh' ? 'Chinese' : lang === 'es' ? 'Spanish' : lang === 'ar' ? 'Arabic' : 'English'}.
+- Respond in ${getLanguageName(lang)}.
 - Keep answers concise (under 80 words) unless explaining a complex legal concept.
 - Be encouraging and supportive.
 `;

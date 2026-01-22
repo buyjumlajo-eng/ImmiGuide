@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, SubscriptionTier } from '../types';
 import { identifyUser, resetAnalytics, trackEvent } from '../services/analytics';
+import { supabase } from '../services/supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -13,7 +14,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock User Data - Default to Free (Paywall Active)
+// Fallback Mock User for Demo/Dev when Supabase is not connected
 const MOCK_USER: User = {
   id: 'user_123',
   name: 'Mateo',
@@ -27,66 +28,124 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate checking local storage for session
-    const storedAuth = localStorage.getItem('immi_auth_token');
-    // Check if we have a stored subscription state
-    const storedTier = localStorage.getItem('immi_sub_tier') as SubscriptionTier;
+    // 1. Check Supabase Session
+    if (supabase) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                mapSupabaseUser(session.user);
+            } else {
+                setIsLoading(false);
+            }
+        });
 
-    if (storedAuth) {
-      const u = {
-          ...MOCK_USER,
-          // Use stored tier if available, otherwise default to free
-          subscriptionTier: storedTier || 'free'
-      };
-      setUser(u);
-      // Identify existing session
-      identifyUser(u.id, { email: u.email, subscription_tier: u.subscriptionTier });
+        // 2. Listen for Auth Changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                mapSupabaseUser(session.user);
+            } else {
+                setUser(null);
+                setIsLoading(false);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    } else {
+        // Fallback to local storage auth if Supabase keys missing
+        const storedAuth = localStorage.getItem('immi_auth_token');
+        const storedTier = localStorage.getItem('immi_sub_tier') as SubscriptionTier;
+        if (storedAuth) {
+            setUser({ ...MOCK_USER, subscriptionTier: storedTier || 'free' });
+        }
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
-  const login = () => {
-    setIsLoading(true);
-    // Simulate network delay
-    setTimeout(() => {
-      localStorage.setItem('immi_auth_token', 'mock_token_123');
-      
-      const storedTier = localStorage.getItem('immi_sub_tier') as SubscriptionTier;
-      const u = {
-          ...MOCK_USER,
-          subscriptionTier: storedTier || 'free'
+  const mapSupabaseUser = async (sbUser: any) => {
+      // Check if we have a profile in 'users' table, if not create one
+      // For this demo, we'll map directly from Auth metadata
+      const { data: profile } = await supabase!
+        .from('users')
+        .select('*')
+        .eq('id', sbUser.id)
+        .single();
+
+      const newUser: User = {
+          id: sbUser.id,
+          email: sbUser.email || '',
+          name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
+          avatar: sbUser.user_metadata?.avatar_url || '',
+          subscriptionTier: profile?.subscription_tier || 'free'
       };
-      setUser(u);
-      
-      // PostHog Identify
-      identifyUser(u.id, { email: u.email, subscription_tier: u.subscriptionTier });
-      trackEvent('login_success');
-      
+
+      setUser(newUser);
+      identifyUser(newUser.id, { email: newUser.email, subscription_tier: newUser.subscriptionTier });
       setIsLoading(false);
-    }, 800);
   };
 
-  const logout = () => {
+  const login = async () => {
+    setIsLoading(true);
+    
+    if (supabase) {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin
+            }
+        });
+        if (error) {
+            console.error("Login error:", error);
+            alert("Login failed: " + error.message);
+            setIsLoading(false);
+        }
+        // Redirect happens automatically
+    } else {
+        // Fallback Mock Login
+        setTimeout(() => {
+            localStorage.setItem('immi_auth_token', 'mock_token_123');
+            const storedTier = localStorage.getItem('immi_sub_tier') as SubscriptionTier;
+            const u = { ...MOCK_USER, subscriptionTier: storedTier || 'free' };
+            setUser(u);
+            identifyUser(u.id, { email: u.email, subscription_tier: u.subscriptionTier });
+            trackEvent('login_success');
+            setIsLoading(false);
+        }, 800);
+    }
+  };
+
+  const logout = async () => {
     trackEvent('logout');
-    localStorage.removeItem('immi_auth_token');
+    if (supabase) {
+        await supabase.auth.signOut();
+    } else {
+        localStorage.removeItem('immi_auth_token');
+    }
     setUser(null);
     resetAnalytics();
   };
 
   const upgradeSubscription = async (tier: SubscriptionTier) => {
-      // Simulate API call
-      return new Promise<void>((resolve) => {
-          setTimeout(() => {
-              if (user) {
-                  const updatedUser = { ...user, subscriptionTier: tier };
-                  setUser(updatedUser);
+      // Simulate Payment Process
+      setTimeout(async () => {
+          if (user) {
+              const updatedUser = { ...user, subscriptionTier: tier };
+              setUser(updatedUser);
+              
+              if (supabase) {
+                  // Update DB
+                  await supabase.from('users').upsert({ 
+                      id: user.id, 
+                      email: user.email,
+                      name: user.name,
+                      subscription_tier: tier 
+                  });
+              } else {
                   localStorage.setItem('immi_sub_tier', tier);
-                  trackEvent('subscription_upgrade', { new_tier: tier });
-                  identifyUser(user.id, { subscription_tier: tier });
               }
-              resolve();
-          }, 1500);
-      });
+              
+              trackEvent('subscription_upgrade', { new_tier: tier });
+              identifyUser(user.id, { subscription_tier: tier });
+          }
+      }, 1500);
   };
 
   return (

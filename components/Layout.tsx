@@ -98,6 +98,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
     );
   };
 
+  const languageLabels: Record<Language, string> = {
+      en: 'English',
+      es: 'Español',
+      zh: '中文',
+      ar: 'العربية',
+      fr: 'Français',
+      pt: 'Português',
+      hi: 'हिंदी'
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex" dir={dir}>
       {/* Sidebar - Desktop */}
@@ -173,7 +183,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                 
                 {isLangMenuOpen && (
                     <div className={`absolute bottom-full ${dir === 'rtl' ? 'right-0' : 'left-0'} mb-2 w-full bg-white border border-slate-200 rounded-lg shadow-xl z-50 overflow-hidden animate-in zoom-in-95 duration-200`}>
-                        {(['en', 'es', 'zh', 'ar'] as Language[]).map((lang) => (
+                        {(Object.keys(languageLabels) as Language[]).map((lang) => (
                             <button
                                 key={lang}
                                 onClick={() => {
@@ -184,7 +194,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                             >
                                 <span className="uppercase font-bold w-8 text-slate-700">{lang}</span>
                                 <span className="text-xs text-slate-500">
-                                    {lang === 'en' ? 'English' : lang === 'es' ? 'Español' : lang === 'zh' ? '中文' : 'العربية'}
+                                    {languageLabels[lang]}
                                 </span>
                             </button>
                         ))}
@@ -257,7 +267,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
 
              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Language</label>
              <div className="grid grid-cols-2 gap-2 mb-6">
-                 {(['en', 'es', 'zh', 'ar'] as Language[]).map((lang) => (
+                 {(Object.keys(languageLabels) as Language[]).map((lang) => (
                     <button
                         key={lang}
                         onClick={() => {
