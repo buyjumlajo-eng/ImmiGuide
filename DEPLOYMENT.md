@@ -1,3 +1,4 @@
+
 # Deployment Guide
 
 ## Phase 1: Supabase (Database & Auth)
@@ -39,3 +40,44 @@ Currently, the app uses `localStorage` for demo purposes. To switch to Supabase:
     ```
 3.  Update `AuthContext.tsx` to use `supabase.auth.signUp()` instead of `localStorage`.
 4.  Update `DocumentVault.tsx` to upload to Supabase Storage instead of local state.
+
+## Option A: Starting from Scratch (Local PC)
+
+If you have just downloaded these files to your computer and want to upload them to a NEW GitHub repository:
+
+1.  **Open Terminal** in your project folder.
+2.  **Initialize Git**:
+    ```bash
+    git init
+    git add .
+    git commit -m "Initial commit"
+    ```
+3.  **Connect to GitHub**:
+    *   Create a new empty repository on GitHub.
+    *   Run these commands (replace URL with your new repo URL):
+    ```bash
+    git branch -M main
+    git remote add origin https://github.com/YOUR_NEW_USERNAME/YOUR_NEW_REPO.git
+    git push -u origin main
+    ```
+
+## Option B: Switching GitHub Accounts (Existing Repo)
+
+If you already have this project connected to an old GitHub account and want to switch to a new one:
+
+1.  **Check current link**:
+    ```bash
+    git remote -v
+    ```
+2.  **Remove old link**:
+    ```bash
+    git remote remove origin
+    ```
+3.  **Add new link**:
+    ```bash
+    git remote add origin https://github.com/YOUR_NEW_USERNAME/YOUR_NEW_REPO.git
+    ```
+4.  **Push code**:
+    ```bash
+    git push -u origin main
+    ```

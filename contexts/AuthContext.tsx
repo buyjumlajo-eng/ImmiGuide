@@ -6,7 +6,9 @@ import { supabase } from '../services/supabase';
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: () => void;
+  login: () => void; // Google Login
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   upgradeSubscription: (tier: SubscriptionTier) => Promise<void>;
   isLoading: boolean;
@@ -112,6 +114,52 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const signInWithEmail = async (email: string, password: string) => {
+      setIsLoading(true);
+      if (supabase) {
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) {
+              setIsLoading(false);
+              throw error;
+          }
+      } else {
+          // Mock Sign In
+          setTimeout(() => {
+              const u = { ...MOCK_USER, email, name: email.split('@')[0] };
+              localStorage.setItem('immi_auth_token', 'mock_token_email');
+              setUser(u);
+              setIsLoading(false);
+          }, 800);
+      }
+  };
+
+  const signUpWithEmail = async (email: string, password: string, name: string) => {
+      setIsLoading(true);
+      if (supabase) {
+          const { error } = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                  data: {
+                      full_name: name,
+                  }
+              }
+          });
+          if (error) {
+              setIsLoading(false);
+              throw error;
+          }
+      } else {
+          // Mock Sign Up
+          setTimeout(() => {
+              const u = { ...MOCK_USER, email, name };
+              localStorage.setItem('immi_auth_token', 'mock_token_email');
+              setUser(u);
+              setIsLoading(false);
+          }, 800);
+      }
+  };
+
   const logout = async () => {
     trackEvent('logout');
     if (supabase) {
@@ -149,7 +197,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, upgradeSubscription, isLoading }}>
+    <AuthContext.Provider value={{ 
+        user, 
+        isAuthenticated: !!user, 
+        login, 
+        signInWithEmail,
+        signUpWithEmail,
+        logout, 
+        upgradeSubscription, 
+        isLoading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

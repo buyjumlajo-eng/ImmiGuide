@@ -25,7 +25,9 @@ import {
   Globe,
   Lock,
   FileSearch,
-  Briefcase
+  Briefcase,
+  Mail,
+  User
 } from 'lucide-react';
 
 // --- Styles (Ported from provided HTML) ---
@@ -943,37 +945,143 @@ const LandingPageStyles = () => (
 
 // --- Login Modal ---
 const LoginModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-    const { login, isLoading } = useAuth();
+    const { login, signInWithEmail, signUpWithEmail, isLoading } = useAuth();
+    const [isSignUp, setIsSignUp] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [name, setName] = useState('');
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setError('');
+            setEmail('');
+            setPassword('');
+            setName('');
+        }
+    }, [isOpen]);
+
     if (!isOpen) return null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        
+        if (!email || !password || (isSignUp && !name)) {
+            setError('Please fill in all fields.');
+            return;
+        }
+
+        try {
+            if (isSignUp) {
+                await signUpWithEmail(email, password, name);
+            } else {
+                await signInWithEmail(email, password);
+            }
+            onClose();
+        } catch (err: any) {
+            setError(err.message || "Authentication failed");
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-white/20">
-                <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors text-slate-500">
+            <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden relative animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-white/20">
+                <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors text-slate-500 z-10">
                     <X className="w-5 h-5" />
                 </button>
-                <div className="p-10 text-center">
-                    <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-200 rotate-3">
-                        <Compass className="w-10 h-10 text-white" />
+                
+                <div className="p-8">
+                    <div className="flex items-center justify-center mb-6">
+                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+                            <Compass className="w-6 h-6 text-white" />
+                        </div>
                     </div>
-                    <h2 className="text-3xl font-bold text-slate-900 mb-3 font-poppins">Welcome to Visa Guide AI</h2>
-                    <p className="text-slate-500 mb-10 text-lg">Your AI companion for the American Dream.</p>
+                    
+                    <h2 className="text-2xl font-bold text-center text-slate-900 mb-1 font-poppins">
+                        {isSignUp ? "Create an Account" : "Welcome Back"}
+                    </h2>
+                    <p className="text-center text-slate-500 mb-6 text-sm">
+                        {isSignUp ? "Start your immigration journey today." : "Access your forms and dashboard."}
+                    </p>
+
+                    {error && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg text-center">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {isSignUp && (
+                            <div className="relative">
+                                <User className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Full Name"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="w-full pl-10 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                />
+                            </div>
+                        )}
+                        <div className="relative">
+                            <Mail className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                            <input
+                                type="email"
+                                placeholder="Email Address"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full pl-10 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                            />
+                        </div>
+                        <div className="relative">
+                            <Lock className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                            <input
+                                type="password"
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full pl-10 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? "Sign Up" : "Sign In")}
+                        </button>
+                    </form>
+
+                    <div className="flex items-center gap-4 my-6">
+                        <div className="h-px bg-slate-200 flex-1"></div>
+                        <span className="text-xs text-slate-400 font-medium">OR CONTINUE WITH</span>
+                        <div className="h-px bg-slate-200 flex-1"></div>
+                    </div>
+
                     <button
+                        type="button"
                         onClick={login}
                         disabled={isLoading}
-                        className="w-full bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 text-slate-800 font-bold py-5 px-6 rounded-2xl transition-all flex items-center justify-center gap-4 group relative overflow-hidden text-lg"
+                        className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-70"
                     >
-                        {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-600" /> : (
-                            <>
-                                <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-6 h-6" alt="Google" />
-                                <span>Continue with Google</span>
-                                <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all absolute right-6 text-blue-600 translate-x-[-10px] group-hover:translate-x-0" />
-                            </>
-                        )}
+                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+                        Google
                     </button>
-                    <p className="text-xs text-slate-400 mt-6">
-                        By continuing, you agree to our Terms of Service and Privacy Policy.
-                    </p>
+
+                    <div className="mt-6 text-center text-sm">
+                        <span className="text-slate-500">
+                            {isSignUp ? "Already have an account?" : "Don't have an account?"}
+                        </span>
+                        <button 
+                            type="button"
+                            onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
+                            className="ml-1 font-bold text-blue-600 hover:underline"
+                        >
+                            {isSignUp ? "Sign In" : "Sign Up"}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
