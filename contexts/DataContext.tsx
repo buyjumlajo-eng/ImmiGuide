@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Attorney, Announcement, AttorneyApplication } from '../types';
+import { supabase } from '../services/supabase';
 
 // Initial Mock Data
-const INITIAL_ATTORNEYS: Attorney[] = [
+export const INITIAL_ATTORNEYS: Attorney[] = [
   {
     id: '1',
     name: 'Sarah Chen, Esq.',
@@ -104,25 +105,106 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// Helper Mappers for Supabase
+const mapAttorneyFromDB = (data: any): Attorney => ({
+    id: data.id,
+    name: data.name,
+    firm: data.firm,
+    image: data.image || '',
+    specialties: data.specialties || [],
+    languages: data.languages || [],
+    rating: Number(data.rating),
+    reviewCount: data.review_count,
+    successRate: data.success_rate,
+    priceStart: data.price_start,
+    isVerified: data.is_verified,
+    nextAvailable: data.next_available
+});
+
+const mapAttorneyToDB = (data: Omit<Attorney, 'id'>) => ({
+    name: data.name,
+    firm: data.firm,
+    image: data.image,
+    specialties: data.specialties,
+    languages: data.languages,
+    rating: data.rating,
+    review_count: data.reviewCount,
+    success_rate: data.successRate,
+    price_start: data.priceStart,
+    is_verified: data.isVerified,
+    next_available: data.nextAvailable
+});
+
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [attorneys, setAttorneys] = useState<Attorney[]>(() => {
-      const saved = localStorage.getItem('immi_data_attorneys');
-      return saved ? JSON.parse(saved) : INITIAL_ATTORNEYS;
-  });
+  const [attorneys, setAttorneys] = useState<Attorney[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [applications, setApplications] = useState<AttorneyApplication[]>([]);
 
-  const [announcements, setAnnouncements] = useState<Announcement[]>(() => {
-      const saved = localStorage.getItem('immi_data_announcements');
-      return saved ? JSON.parse(saved).map((a: any) => ({...a, date: new Date(a.date)})) : INITIAL_ANNOUNCEMENTS;
-  });
-
-  const [applications, setApplications] = useState<AttorneyApplication[]>(() => {
-      const saved = localStorage.getItem('immi_data_applications');
-      return saved ? JSON.parse(saved).map((a: any) => ({...a, submittedDate: new Date(a.submittedDate)})) : INITIAL_APPLICATIONS;
-  });
-
-  // Persistence
+  // Initial Load
   useEffect(() => {
-    localStorage.setItem('immi_data_attorneys', JSON.stringify(attorneys));
+      const loadData = async () => {
+          if (supabase) {
+              try {
+                  // 1. Fetch Attorneys
+                  const { data: attData, error: attError } = await supabase
+                      .from('attorneys')
+                      .select('*');
+                  
+                  if (attData && !attError) {
+                      setAttorneys(attData.map(mapAttorneyFromDB));
+                  } else {
+                      console.error("Error fetching attorneys:", attError);
+                  }
+
+                  // 2. Fetch Applications
+                  const { data: appData, error: appError } = await supabase
+                      .from('attorney_applications')
+                      .select('*');
+
+                  if (appData && !appError) {
+                      setApplications(appData.map((a: any) => ({
+                          id: a.id,
+                          firstName: a.first_name,
+                          lastName: a.last_name,
+                          email: a.email,
+                          firmName: a.firm_name,
+                          barState: a.bar_state,
+                          barNumber: a.bar_number,
+                          status: a.status,
+                          submittedDate: new Date(a.submitted_date),
+                          // Fields not in schema will be defaulted for UI
+                          yearAdmitted: 'N/A', 
+                          specialties: [], 
+                          bio: '', 
+                          partnershipModel: 'lead_gen'
+                      })));
+                  }
+
+                  // 3. Announcements (Local only for now as no schema table exists)
+                  const savedAnn = localStorage.getItem('immi_data_announcements');
+                  setAnnouncements(savedAnn ? JSON.parse(savedAnn).map((a: any) => ({...a, date: new Date(a.date)})) : INITIAL_ANNOUNCEMENTS);
+
+              } catch (e) {
+                  console.error("Supabase connection issue:", e);
+              }
+          } else {
+              // Local Fallback
+              const savedAtt = localStorage.getItem('immi_data_attorneys');
+              setAttorneys(savedAtt ? JSON.parse(savedAtt) : INITIAL_ATTORNEYS);
+
+              const savedAnn = localStorage.getItem('immi_data_announcements');
+              setAnnouncements(savedAnn ? JSON.parse(savedAnn).map((a: any) => ({...a, date: new Date(a.date)})) : INITIAL_ANNOUNCEMENTS);
+
+              const savedApps = localStorage.getItem('immi_data_applications');
+              setApplications(savedApps ? JSON.parse(savedApps).map((a: any) => ({...a, submittedDate: new Date(a.submittedDate)})) : INITIAL_APPLICATIONS);
+          }
+      };
+      loadData();
+  }, []);
+
+  // Persistence for Local Mode Only (if supabase is active, we don't save to local storage to avoid sync issues)
+  useEffect(() => {
+    if (!supabase) localStorage.setItem('immi_data_attorneys', JSON.stringify(attorneys));
   }, [attorneys]);
 
   useEffect(() => {
@@ -130,16 +212,37 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [announcements]);
 
   useEffect(() => {
-    localStorage.setItem('immi_data_applications', JSON.stringify(applications));
+    if (!supabase) localStorage.setItem('immi_data_applications', JSON.stringify(applications));
   }, [applications]);
 
-  const addAttorney = (data: Omit<Attorney, 'id'>) => {
-      const newAttorney = { ...data, id: Date.now().toString() };
-      setAttorneys(prev => [...prev, newAttorney]);
+  // Actions
+  const addAttorney = async (data: Omit<Attorney, 'id'>) => {
+      if (supabase) {
+          const { data: newRow, error } = await supabase
+              .from('attorneys')
+              .insert([mapAttorneyToDB(data)])
+              .select()
+              .single();
+          
+          if (newRow && !error) {
+              setAttorneys(prev => [...prev, mapAttorneyFromDB(newRow)]);
+          } else {
+              console.error("Add attorney failed", error);
+              alert("Failed to save to database.");
+          }
+      } else {
+          const newAttorney = { ...data, id: Date.now().toString() };
+          setAttorneys(prev => [...prev, newAttorney]);
+      }
   };
 
-  const deleteAttorney = (id: string) => {
-      setAttorneys(prev => prev.filter(a => a.id !== id));
+  const deleteAttorney = async (id: string) => {
+      if (supabase) {
+          await supabase.from('attorneys').delete().eq('id', id);
+          setAttorneys(prev => prev.filter(a => a.id !== id));
+      } else {
+          setAttorneys(prev => prev.filter(a => a.id !== id));
+      }
   };
 
   const addAnnouncement = (data: Omit<Announcement, 'id' | 'date'>) => {
@@ -155,41 +258,92 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setAnnouncements(prev => prev.filter(a => a.id !== id));
   };
 
-  const submitApplication = (appData: Omit<AttorneyApplication, 'id' | 'status' | 'submittedDate'>) => {
-      const newApp: AttorneyApplication = {
-          ...appData,
-          id: `app_${Date.now()}`,
-          status: 'pending',
-          submittedDate: new Date()
-      };
-      setApplications(prev => [...prev, newApp]);
+  const submitApplication = async (appData: Omit<AttorneyApplication, 'id' | 'status' | 'submittedDate'>) => {
+      if (supabase) {
+          const { data: newApp, error } = await supabase
+              .from('attorney_applications')
+              .insert([{
+                  first_name: appData.firstName,
+                  last_name: appData.lastName,
+                  email: appData.email,
+                  firm_name: appData.firmName,
+                  bar_state: appData.barState,
+                  bar_number: appData.barNumber,
+                  // Note: bio, specialties, yearAdmitted missing in schema, omitting for now to prevent SQL error
+              }])
+              .select()
+              .single();
+          
+          if (newApp && !error) {
+              setApplications(prev => [...prev, {
+                  ...appData,
+                  id: newApp.id,
+                  status: 'pending',
+                  submittedDate: new Date(newApp.submitted_date)
+              }]);
+          } else {
+              alert("Application submission failed. Please try again.");
+              console.error(error);
+          }
+      } else {
+          const newApp: AttorneyApplication = {
+              ...appData,
+              id: `app_${Date.now()}`,
+              status: 'pending',
+              submittedDate: new Date()
+          };
+          setApplications(prev => [...prev, newApp]);
+      }
   };
 
-  const approveApplication = (id: string) => {
+  const approveApplication = async (id: string) => {
       const app = applications.find(a => a.id === id);
       if (!app) return;
 
-      // Convert Application to Attorney Listing
-      const newAttorney: Attorney = {
-          id: Date.now().toString(),
-          name: `${app.firstName} ${app.lastName}`,
-          firm: app.firmName,
-          image: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&q=80&w=200&h=200', // Default placeholder
-          specialties: app.specialties,
-          languages: ['English'], // Default, user can edit later
-          rating: 5.0, // New listings start high
-          reviewCount: 0,
-          successRate: 100,
-          priceStart: app.partnershipModel === 'lead_gen' ? 150 : 250, // Guess based on model
-          isVerified: true,
-          nextAvailable: 'Available Now'
-      };
+      if (supabase) {
+          // 1. Create Attorney
+          await addAttorney({
+              name: `${app.firstName} ${app.lastName}`,
+              firm: app.firmName,
+              image: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&q=80&w=200&h=200',
+              specialties: app.specialties || ['General Immigration'],
+              languages: ['English'],
+              rating: 5.0,
+              reviewCount: 0,
+              successRate: 100,
+              priceStart: app.partnershipModel === 'lead_gen' ? 150 : 250,
+              isVerified: true,
+              nextAvailable: 'Available Now'
+          });
 
-      setAttorneys(prev => [...prev, newAttorney]);
-      setApplications(prev => prev.filter(a => a.id !== id));
+          // 2. Delete Application
+          await supabase.from('attorney_applications').delete().eq('id', id);
+          setApplications(prev => prev.filter(a => a.id !== id));
+      } else {
+          // Local Mode
+          const newAttorney: Attorney = {
+              id: Date.now().toString(),
+              name: `${app.firstName} ${app.lastName}`,
+              firm: app.firmName,
+              image: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&q=80&w=200&h=200',
+              specialties: app.specialties,
+              languages: ['English'],
+              rating: 5.0,
+              reviewCount: 0,
+              successRate: 100,
+              priceStart: app.partnershipModel === 'lead_gen' ? 150 : 250,
+              isVerified: true,
+              nextAvailable: 'Available Now'
+          };
+          setAttorneys(prev => [...prev, newAttorney]);
+          setApplications(prev => prev.filter(a => a.id !== id));
+      }
   };
 
-  const rejectApplication = (id: string) => {
+  const rejectApplication = async (id: string) => {
+      if (supabase) {
+          await supabase.from('attorney_applications').delete().eq('id', id);
+      }
       setApplications(prev => prev.filter(a => a.id !== id));
   };
 
