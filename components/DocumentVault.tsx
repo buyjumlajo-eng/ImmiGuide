@@ -283,13 +283,82 @@ export const DocumentVault: React.FC = () => {
       }
   };
 
-  // ... Drag and Drop handlers remain same ...
+  // ... Drag and Drop handlers ...
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); if (!isUploading) setIsDragging(true); };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files[0] && !isUploading) processFile(e.dataTransfer.files[0]); };
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.[0]) { processFile(e.target.files[0]); e.target.value = ''; } };
 
   const filteredDocs = documents.filter(doc => doc.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  // Render Preview Content
+  const renderPreviewContent = () => {
+      if (isDecrypting) {
+          return (
+              <div className="text-center text-white">
+                  <Loader2 className="w-12 h-12 text-green-400 animate-spin mx-auto mb-4" />
+                  <p className="text-sm font-bold">Decrypting File...</p>
+              </div>
+          );
+      }
+
+      if (!decryptedPreview) {
+          return (
+              <div className="text-center text-white/50">
+                  <FileText className="w-20 h-20 mx-auto mb-4 opacity-50" />
+                  <p>Decryption failed or preview unavailable.</p>
+              </div>
+          );
+      }
+
+      // Check MIME type from Data URL
+      // Data URL format: data:[<mediatype>][;base64],<data>
+      const mimeMatch = decryptedPreview.match(/^data:(.*?);base64,/);
+      const mimeType = mimeMatch ? mimeMatch[1] : '';
+
+      if (mimeType === 'application/pdf') {
+          return (
+              <iframe 
+                  src={decryptedPreview} 
+                  className="w-full h-full rounded-lg bg-white shadow-lg" 
+                  title="PDF Preview" 
+              />
+          );
+      } else if (mimeType.startsWith('image/')) {
+          return (
+              <img 
+                  src={decryptedPreview} 
+                  alt="Document" 
+                  className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" 
+              />
+          );
+      } else if (mimeType.startsWith('text/')) {
+          // Decode base64 to text
+          try {
+              const base64Content = decryptedPreview.split(',')[1];
+              const textContent = atob(base64Content);
+              return (
+                  <div className="w-full h-full bg-white rounded-lg shadow-lg p-8 overflow-auto">
+                      <pre className="whitespace-pre-wrap font-mono text-sm text-slate-800">
+                          {textContent}
+                      </pre>
+                  </div>
+              );
+          } catch (e) {
+              return <div className="text-white">Error decoding text content.</div>;
+          }
+      } else {
+          return (
+              <div className="text-center text-white">
+                  <FileText className="w-20 h-20 mx-auto mb-4 opacity-50" />
+                  <p>Preview not available for this file type ({mimeType}).</p>
+                  <a href={decryptedPreview} download={viewDoc?.name || "download"} className="mt-4 inline-block bg-white text-slate-900 px-4 py-2 rounded-lg font-bold">
+                      Download File
+                  </a>
+              </div>
+          );
+      }
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 relative">
@@ -318,7 +387,7 @@ export const DocumentVault: React.FC = () => {
                   onDrop={handleDrop}
               >
                   {!isUploading && (
-                      <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={handleFileInput} accept="image/*,.pdf" />
+                      <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={handleFileInput} accept="image/*,.pdf,.txt" />
                   )}
                   <input type="file" ref={cameraInputRef} className="hidden" onChange={handleFileInput} accept="image/*" capture="environment" />
                   
@@ -382,7 +451,7 @@ export const DocumentVault: React.FC = () => {
                             <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center relative overflow-hidden">
-                                        <Lock className="w-5 h-5 text-slate-400" />
+                                        {doc.type === 'TXT' ? <FileText className="w-5 h-5 text-slate-400" /> : <Lock className="w-5 h-5 text-slate-400" />}
                                         <div className="absolute inset-0 bg-gradient-to-tr from-slate-200/50 to-transparent flex items-end justify-end p-1">
                                             <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm"></div>
                                         </div>
@@ -453,17 +522,7 @@ export const DocumentVault: React.FC = () => {
                       <button onClick={() => setViewDoc(null)} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><X className="w-5 h-5 text-slate-600" /></button>
                   </div>
                   <div className="flex-1 relative flex items-center justify-center p-4 bg-slate-800/50">
-                        {isDecrypting ? (
-                            <div className="text-center text-white"><Loader2 className="w-12 h-12 text-green-400 animate-spin mx-auto mb-4" /><p className="text-sm font-bold">Decrypting File...</p></div>
-                        ) : decryptedPreview ? (
-                            viewDoc.type === 'PDF' && decryptedPreview.startsWith('data:application/pdf') ? (
-                                 <iframe src={decryptedPreview} className="w-full h-full rounded-lg bg-white shadow-lg" title="PDF Preview" />
-                            ) : (
-                                 <img src={decryptedPreview} alt="Document" className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" />
-                            )
-                        ) : (
-                            <div className="text-center text-white/50"><FileText className="w-20 h-20 mx-auto mb-4 opacity-50" /><p>Decryption failed or preview unavailable.</p></div>
-                        )}
+                        {renderPreviewContent()}
                   </div>
               </div>
           </div>
