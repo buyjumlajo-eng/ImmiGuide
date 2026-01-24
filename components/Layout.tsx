@@ -22,12 +22,15 @@ import {
   Crown,
   BookOpen,
   FileSearch,
-  BarChart2
+  BarChart2,
+  Database,
+  HardDrive
 } from 'lucide-react';
 import { ChatWidget } from './ChatWidget';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Language, SubscriptionTier } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../services/supabase';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -120,10 +123,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             <span className="text-xl font-bold text-slate-800">Visa Guide AI</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
-              <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Beta</div>
-              {user?.subscriptionTier !== 'free' && (
-                  <div className="flex items-center gap-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">
-                      <Crown className="w-3 h-3" /> PRO
+              <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Beta 1.0</div>
+              
+              {/* Connection Status Indicator */}
+              {supabase ? (
+                  <div className="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold border border-green-200" title="Connected to Supabase">
+                      <Database className="w-3 h-3" /> Online
+                  </div>
+              ) : (
+                  <div className="flex items-center gap-1 bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200" title="Using Local Storage (Demo Mode)">
+                      <HardDrive className="w-3 h-3" /> Local
                   </div>
               )}
           </div>
