@@ -10,7 +10,22 @@ interface ChatWidgetProps {
     onNavigate: (view: ViewState) => void;
 }
 
-const VALID_VIEWS: ViewState[] = ['dashboard', 'forms', 'rfe', 'strategy', 'marketplace'];
+// Allowed navigation targets for the AI
+const VALID_VIEWS: ViewState[] = [
+    'dashboard', 
+    'forms', 
+    'documents', 
+    'letters', 
+    'rfe', 
+    'strategy', 
+    'marketplace', 
+    'translations', 
+    'caselaw', 
+    'interview', 
+    'knowledge', 
+    'risk',
+    'analytics'
+];
 
 // --- Audio Helper Functions ---
 

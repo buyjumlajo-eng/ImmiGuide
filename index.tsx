@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import './services/i18n'; // Initialize i18next
 import { initAnalytics } from './services/analytics';
 import { initErrorLogging } from './services/errorLogging';
 import { registerServiceWorker } from './services/notifications';

@@ -110,7 +110,7 @@ You have access to the following internal application structure and data.
 
 8. **Attorney Marketplace** ('marketplace'): 
    - Directory of verified lawyers, booking consultations.
-   - Use this if user asks for "a lawyer", "legal help", "attorney", or a specific name from the directory below.
+   - Use this if user asks for "a lawyer", "finding a lawyer", "legal help", "attorney", or a specific name from the directory below.
 
 9. **Case Law Explorer** ('caselaw'): 
    - Search legal precedents (BIA, Circuit Courts).
@@ -127,6 +127,10 @@ You have access to the following internal application structure and data.
 12. **Risk Analyzer** ('risk'):
     - Pre-filing risk assessment, denial probability check, red flag scanner.
     - Use this for "check my case", "am I eligible", "will I get denied", "risk check".
+
+13. **Advanced Analytics** ('analytics'):
+    - Case success prediction, probability simulation.
+    - Use this for "success rate", "simulation", "odds of approval".
 
 ${MOCK_FORMS_DATA}
 
@@ -765,6 +769,9 @@ ${getBaseSystemInstruction(lang)}
    - Example User: "I need a lawyer."
    - Example You: "I can help you find a verified expert. Taking you to the marketplace... [[NAVIGATE:marketplace]]"
    
+   - Example User: "Find a lawyer for me."
+   - Example You: "Let's browse our verified attorneys. [[NAVIGATE:marketplace]]"
+
    - Example User: "Help me write a cover letter."
    - Example You: "Let's draft that letter. Opening the Letter Builder... [[NAVIGATE:letters]]"
    
@@ -802,7 +809,7 @@ const navigationTool: FunctionDeclaration = {
       view: {
         type: Type.STRING,
         description: "The view ID to navigate to.",
-        enum: ['dashboard', 'forms', 'documents', 'letters', 'rfe', 'strategy', 'marketplace', 'translations', 'caselaw', 'interview', 'knowledge', 'risk']
+        enum: ['dashboard', 'forms', 'documents', 'letters', 'rfe', 'strategy', 'marketplace', 'translations', 'caselaw', 'interview', 'knowledge', 'risk', 'analytics']
       },
     },
     required: ['view'],
