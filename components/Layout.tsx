@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewState } from '../App';
 import { 
   LayoutDashboard, 
@@ -24,7 +24,9 @@ import {
   FileSearch,
   BarChart2,
   Database,
-  HardDrive
+  HardDrive,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import { ChatWidget } from './ChatWidget';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -41,6 +43,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = React.useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const langMenuRef = React.useRef<HTMLDivElement>(null);
   const { t, language, setLanguage, dir } = useLanguage();
   const { user, logout } = useAuth();
@@ -56,6 +59,28 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [langMenuRef]);
+
+  // Sync fullscreen state with browser
+  useEffect(() => {
+      const handleFsChange = () => {
+          setIsFullscreen(!!document.fullscreenElement);
+      };
+      document.addEventListener('fullscreenchange', handleFsChange);
+      return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+      try {
+          if (!document.fullscreenElement) {
+              await document.documentElement.requestFullscreen();
+          } else {
+              await document.exitFullscreen();
+          }
+      } catch (e) {
+          console.error("Fullscreen error:", e);
+          alert("Fullscreen blocked by browser/environment.");
+      }
+  };
 
   // Helper to determine if an item is locked based on user tier
   const isLocked = (view: ViewState): boolean => {
@@ -211,6 +236,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                 )}
             </div>
 
+          {/* Fullscreen Toggle */}
+          <button 
+            onClick={toggleFullscreen}
+            className="flex items-center w-full px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+          >
+            {isFullscreen ? (
+                <Minimize className={`w-4 h-4 ${dir === 'rtl' ? 'ml-3' : 'mr-3'} text-slate-400`} />
+            ) : (
+                <Maximize className={`w-4 h-4 ${dir === 'rtl' ? 'ml-3' : 'mr-3'} text-slate-400`} />
+            )}
+            {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          </button>
+
           <button className="flex items-center w-full px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition-colors">
             {user?.avatar ? (
                 <img src={user.avatar} alt="Profile" className={`w-5 h-5 rounded-full ${dir === 'rtl' ? 'ml-3' : 'mr-3'}`} />
@@ -273,6 +311,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                     <div className="text-xs text-slate-500">{user?.email}</div>
                 </div>
              </div>
+
+             {/* Fullscreen Mobile */}
+             <button 
+                onClick={toggleFullscreen}
+                className="w-full py-3 text-slate-600 font-bold border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 mb-3"
+             >
+                 {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                 {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Mode'}
+             </button>
 
              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Language</label>
              <div className="grid grid-cols-2 gap-2 mb-6">

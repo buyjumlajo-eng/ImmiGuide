@@ -24,7 +24,8 @@ const VALID_VIEWS: ViewState[] = [
     'interview', 
     'knowledge', 
     'risk',
-    'analytics'
+    'analytics',
+    'attorney-signup'
 ];
 
 // --- Audio Helper Functions ---
@@ -346,7 +347,8 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onNavigate }) => {
          fullText += chunkText;
          
          // Check for Text Navigation Token: [[NAVIGATE:viewId]]
-         const match = fullText.match(/\[\[NAVIGATE:(.*?)\]\]/);
+         // Improved regex to handle whitespace like [[NAVIGATE: marketplace]]
+         const match = fullText.match(/\[\[NAVIGATE\s*:\s*(.*?)\]\]/);
          if (match && !hasNavigated) {
              const rawView = match[1].trim();
              const view = rawView.replace(/['"]/g, ''); // Remove potential quotes
@@ -466,7 +468,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ onNavigate }) => {
                                  voiceStatus === 'speaking' ? 'Speaking...' : 'Ready'}
                             </h4>
                             <p className="text-slate-400 text-sm">
-                                {language === 'es' ? 'Habla ahora' : language === 'zh' ? '请说' : language === 'ar' ? 'تحدث الآن' : 'Speak clearly'}
+                                {language === 'es' ? 'Habla agora' : language === 'zh' ? '请说' : language === 'ar' ? 'تحدث الآن' : 'Speak clearly'}
                             </p>
                         </div>
                       </>

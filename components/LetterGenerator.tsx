@@ -15,7 +15,8 @@ import {
   Trash2,
   PlusCircle,
   RotateCcw,
-  BookOpen
+  BookOpen,
+  Save
 } from 'lucide-react';
 
 interface EvidenceCategory {
@@ -42,6 +43,38 @@ export const LetterGenerator: React.FC = () => {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [letter, setLetter] = useState('');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  // --- Persistence Logic ---
+  useEffect(() => {
+      const savedState = localStorage.getItem('immi_letter_state');
+      if (savedState) {
+          try {
+              const parsed = JSON.parse(savedState);
+              if (parsed.formData) setFormData(parsed.formData);
+              if (parsed.categories) setCategories(parsed.categories);
+              if (parsed.letter) setLetter(parsed.letter);
+              if (parsed.step) setStep(parsed.step);
+              if (parsed.timestamp) setLastSaved(new Date(parsed.timestamp));
+          } catch (e) {
+              console.error("Failed to load saved letter state", e);
+          }
+      }
+  }, []);
+
+  const handleSave = () => {
+      const stateToSave = {
+          formData,
+          categories,
+          letter,
+          step,
+          timestamp: new Date()
+      };
+      localStorage.setItem('immi_letter_state', JSON.stringify(stateToSave));
+      setLastSaved(new Date());
+      // Optional: Visual feedback could be added here (toast), using simple alert for now
+      alert("Draft saved to local storage!");
+  };
 
   // Dynamic Label Helpers
   const isPetition = formData.formType.startsWith('I-');
@@ -55,6 +88,10 @@ export const LetterGenerator: React.FC = () => {
 
   // Pre-fill categories based on form type
   useEffect(() => {
+      // Only set defaults if categories are empty (to avoid overwriting loaded state)
+      const isDefault = categories.length === 3 && categories[0].items[0] === '' && categories[0].category === "Petitioner's Status";
+      if (!isDefault) return;
+
       // --- Standard Petitions ---
       if (formData.formType.includes('I-130')) {
           setCategories([
@@ -152,6 +189,18 @@ export const LetterGenerator: React.FC = () => {
           }, language);
           setLetter(result);
           setStep(3);
+          
+          // Auto-save on generation
+          const stateToSave = {
+              formData,
+              categories,
+              letter: result,
+              step: 3,
+              timestamp: new Date()
+          };
+          localStorage.setItem('immi_letter_state', JSON.stringify(stateToSave));
+          setLastSaved(new Date());
+
       } catch (e: any) {
           console.error(e);
           alert(e.message || "Failed to generate letter");
@@ -162,6 +211,7 @@ export const LetterGenerator: React.FC = () => {
 
   const handleReset = () => {
       if (window.confirm("Are you sure you want to delete this form and start over? All progress will be lost.")) {
+          localStorage.removeItem('immi_letter_state');
           setStep(1);
           setFormData({
               petitioner: '',
@@ -171,6 +221,7 @@ export const LetterGenerator: React.FC = () => {
               serviceCenter: 'USCIS Phoenix Lockbox',
           });
           setLetter('');
+          setLastSaved(null);
       }
   };
 
@@ -197,13 +248,27 @@ export const LetterGenerator: React.FC = () => {
           </h1>
           <p className="text-slate-500 max-w-xl mx-auto">Create professional cover letters, hardship waivers, and support statements tailored to USCIS requirements.</p>
           
-          <button 
-            onClick={handleReset}
-            className="absolute top-0 right-0 text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
-            title="Clear form and start over"
-          >
-              <Trash2 className="w-4 h-4" /> Start Over
-          </button>
+          <div className="absolute top-0 right-0 flex gap-2">
+              <button 
+                onClick={handleSave}
+                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
+                title="Save progress locally"
+              >
+                  <Save className="w-4 h-4" /> Save Draft
+              </button>
+              <button 
+                onClick={handleReset}
+                className="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
+                title="Clear form and start over"
+              >
+                  <Trash2 className="w-4 h-4" /> Start Over
+              </button>
+          </div>
+          {lastSaved && (
+              <div className="absolute top-10 right-0 text-[10px] text-slate-400">
+                  Last saved: {lastSaved.toLocaleTimeString()}
+              </div>
+          )}
       </div>
 
       <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
@@ -505,12 +570,20 @@ export const LetterGenerator: React.FC = () => {
                           >
                               Edit Details
                           </button>
-                          <button 
-                            onClick={handleDownloadFinal}
-                            className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 shadow-lg shadow-green-200 flex items-center gap-2 transition-all"
-                          >
-                              <Download className="w-4 h-4" /> Finalize & Download
-                          </button>
+                          <div className="flex gap-2">
+                              <button 
+                                onClick={handleSave}
+                                className="bg-slate-100 text-slate-700 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 flex items-center gap-2 transition-all"
+                              >
+                                  <Save className="w-4 h-4" /> Save
+                              </button>
+                              <button 
+                                onClick={handleDownloadFinal}
+                                className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 shadow-lg shadow-green-200 flex items-center gap-2 transition-all"
+                              >
+                                  <Download className="w-4 h-4" /> Finalize & Download
+                              </button>
+                          </div>
                         </div>
                   </div>
               )}

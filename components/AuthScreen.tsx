@@ -27,7 +27,9 @@ import {
   FileSearch,
   Briefcase,
   Mail,
-  User
+  User,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 
 // --- Styles (Ported from provided HTML) ---
@@ -1094,11 +1096,19 @@ export const AuthScreen: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [viewDoc, setViewDoc] = useState<'privacy' | 'terms' | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
       const handleScroll = () => setScrolled(window.scrollY > 50);
       window.addEventListener('scroll', handleScroll);
-      return () => window.removeEventListener('scroll', handleScroll);
+      
+      const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+      document.addEventListener('fullscreenchange', handleFsChange);
+
+      return () => {
+          window.removeEventListener('scroll', handleScroll);
+          document.removeEventListener('fullscreenchange', handleFsChange);
+      };
   }, []);
 
   const scrollTo = (id: string) => {
@@ -1106,6 +1116,19 @@ export const AuthScreen: React.FC = () => {
       if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
           setMobileMenuOpen(false);
+      }
+  };
+
+  const toggleFullscreen = async () => {
+      try {
+          if (!document.fullscreenElement) {
+              await document.documentElement.requestFullscreen();
+          } else {
+              await document.exitFullscreen();
+          }
+      } catch (e) {
+          console.error("Fullscreen error:", e);
+          alert("Fullscreen not allowed in this environment.");
       }
   };
 
@@ -1131,6 +1154,11 @@ export const AuthScreen: React.FC = () => {
                     <li><button onClick={() => scrollTo('pricing')}>Pricing</button></li>
                     <li><button onClick={() => scrollTo('testimonials')}>Reviews</button></li>
                     <li><button onClick={() => scrollTo('faq')}>FAQ</button></li>
+                    <li>
+                        <button onClick={toggleFullscreen} title="Toggle Fullscreen">
+                            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                        </button>
+                    </li>
                     <li><button onClick={() => setShowLogin(true)} className="nav-cta">Get Started</button></li>
                 </ul>
             </nav>

@@ -132,6 +132,10 @@ You have access to the following internal application structure and data.
     - Case success prediction, probability simulation.
     - Use this for "success rate", "simulation", "odds of approval".
 
+14. **Attorney Sign-Up** ('attorney-signup'):
+    - For lawyers wanting to join the platform.
+    - Use this for "I am a lawyer", "join as attorney", "partner application".
+
 ${MOCK_FORMS_DATA}
 
 ${MOCK_ATTORNEYS_DATA}
@@ -771,6 +775,9 @@ ${getBaseSystemInstruction(lang)}
    
    - Example User: "Find a lawyer for me."
    - Example You: "Let's browse our verified attorneys. [[NAVIGATE:marketplace]]"
+   
+   - Example User: "finding a lawyer"
+   - Example You: "Here are our verified legal experts. [[NAVIGATE:marketplace]]"
 
    - Example User: "Help me write a cover letter."
    - Example You: "Let's draft that letter. Opening the Letter Builder... [[NAVIGATE:letters]]"
@@ -786,6 +793,9 @@ ${getBaseSystemInstruction(lang)}
 
    - Example User: "Check my risk" or "Will I be denied?"
    - Example You: "Let's run a pre-filing risk assessment. [[NAVIGATE:risk]]"
+   
+   - Example User: "I am a lawyer" or "Join as attorney"
+   - Example You: "Welcome! Let's get you signed up as a partner. [[NAVIGATE:attorney-signup]]"
 
 3. If the user asks about a SPECIFIC ATTORNEY listed in the data (e.g., "Sarah Chen"), tell them you found her profile and Navigate to 'marketplace'.
    - Example: "Yes, Sarah Chen is available. Opening her profile... [[NAVIGATE:marketplace]]"
@@ -796,7 +806,7 @@ ${getBaseSystemInstruction(lang)}
 
 **CRITICAL NAVIGATION RULES (VOICE MODE)**:
 1. Use the 'changeView' tool to navigate the user when they ask for a feature or specific section.
-2. Example: User says "I need a lawyer", you call changeView({view: 'marketplace'}).
+2. Example: User says "I need a lawyer" or "finding a lawyer", you call changeView({view: 'marketplace'}).
 `;
 
 // Tool definition for Voice Mode (Live API)
@@ -809,7 +819,7 @@ const navigationTool: FunctionDeclaration = {
       view: {
         type: Type.STRING,
         description: "The view ID to navigate to.",
-        enum: ['dashboard', 'forms', 'documents', 'letters', 'rfe', 'strategy', 'marketplace', 'translations', 'caselaw', 'interview', 'knowledge', 'risk', 'analytics']
+        enum: ['dashboard', 'forms', 'documents', 'letters', 'rfe', 'strategy', 'marketplace', 'translations', 'caselaw', 'interview', 'knowledge', 'risk', 'analytics', 'attorney-signup']
       },
     },
     required: ['view'],
