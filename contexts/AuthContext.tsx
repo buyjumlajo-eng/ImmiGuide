@@ -131,47 +131,52 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signInWithEmail = async (email: string, password: string) => {
       setIsLoading(true);
-      if (supabase) {
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) {
-              setIsLoading(false);
-              throw error;
-          }
-      } else {
-          // Mock Sign In
-          setTimeout(() => {
+      try {
+          if (supabase) {
+              const { error } = await supabase.auth.signInWithPassword({ email, password });
+              if (error) {
+                  throw error;
+              }
+          } else {
+              // Mock Sign In
+              await new Promise(resolve => setTimeout(resolve, 800));
               const u = { ...MOCK_USER, email, name: email.split('@')[0] };
               localStorage.setItem('immi_auth_token', 'mock_token_email');
               setUser(u);
-              setIsLoading(false);
-          }, 800);
+          }
+      } finally {
+          setIsLoading(false);
       }
   };
 
   const signUpWithEmail = async (email: string, password: string, name: string) => {
       setIsLoading(true);
-      if (supabase) {
-          const { error } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                  data: {
-                      full_name: name,
+      try {
+          if (supabase) {
+              const { data, error } = await supabase.auth.signUp({
+                  email,
+                  password,
+                  options: {
+                      data: {
+                          full_name: name,
+                      }
                   }
+              });
+              if (error) {
+                  throw error;
               }
-          });
-          if (error) {
-              setIsLoading(false);
-              throw error;
-          }
-      } else {
-          // Mock Sign Up
-          setTimeout(() => {
+              if (data.user && !data.session) {
+                  alert("Please check your email to confirm your registration.");
+              }
+          } else {
+              // Mock Sign Up
+              await new Promise(resolve => setTimeout(resolve, 800));
               const u = { ...MOCK_USER, email, name };
               localStorage.setItem('immi_auth_token', 'mock_token_email');
               setUser(u);
-              setIsLoading(false);
-          }, 800);
+          }
+      } finally {
+          setIsLoading(false);
       }
   };
 
