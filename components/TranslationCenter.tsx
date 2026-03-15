@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { translateDocument } from '../services/geminiService';
 import { 
@@ -16,7 +16,8 @@ import {
   FileText,
   ThumbsUp,
   ThumbsDown,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 
 type Tab = 'ai' | 'certified';
@@ -41,6 +42,21 @@ export const TranslationCenter: React.FC = () => {
   const [pageCount, setPageCount] = useState(1);
   const [isUrgent, setIsUrgent] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+
+  // --- Toast Feedback State ---
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Clear feedback after 5 seconds
+  useEffect(() => {
+    if (error || successMsg) {
+      const timer = setTimeout(() => {
+        setError(null);
+        setSuccessMsg(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, successMsg]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
@@ -75,7 +91,7 @@ export const TranslationCenter: React.FC = () => {
           );
           setAiResult(result);
       } catch (e: any) {
-          alert(e.message || "Translation failed. Please try again.");
+          setError(e.message || "Translation failed. Please try again.");
       } finally {
           setIsProcessing(false);
       }
@@ -96,6 +112,7 @@ export const TranslationCenter: React.FC = () => {
     if (!aiResult) return;
     navigator.clipboard.writeText(aiResult);
     setCopied(true);
+    setSuccessMsg("Copied to clipboard!");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -114,7 +131,31 @@ export const TranslationCenter: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20 relative">
+      {/* Toast Notifications */}
+      {(error || successMsg) && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+          {error && (
+            <div className="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <p className="text-sm font-medium">{error}</p>
+              <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          {successMsg && (
+            <div className="bg-green-50 text-green-800 border border-green-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <p className="text-sm font-medium">{successMsg}</p>
+              <button onClick={() => setSuccessMsg(null)} className="ml-auto text-green-400 hover:text-green-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="text-center max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold text-slate-900 mb-3 flex items-center justify-center gap-3">
             <Globe className="w-8 h-8 text-blue-600" />

@@ -29,7 +29,8 @@ import {
   Mail,
   User,
   Maximize,
-  Minimize
+  Minimize,
+  AlertTriangle
 } from 'lucide-react';
 
 // --- Styles (Ported from provided HTML) ---
@@ -1064,7 +1065,13 @@ const LoginModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen
 
                     <button
                         type="button"
-                        onClick={login}
+                        onClick={async () => {
+                            try {
+                                await login();
+                            } catch (err: any) {
+                                setError(err.message || "Login failed");
+                            }
+                        }}
                         disabled={isLoading}
                         className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-70"
                     >
@@ -1098,6 +1105,19 @@ export const AuthScreen: React.FC = () => {
   const [viewDoc, setViewDoc] = useState<'privacy' | 'terms' | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // --- Feedback State ---
+  const [error, setError] = useState<string | null>(null);
+
+  // Clear feedback after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   useEffect(() => {
       const handleScroll = () => setScrolled(window.scrollY > 50);
       window.addEventListener('scroll', handleScroll);
@@ -1128,7 +1148,7 @@ export const AuthScreen: React.FC = () => {
           }
       } catch (e) {
           console.error("Fullscreen error:", e);
-          alert("Fullscreen not allowed in this environment.");
+          setError("Fullscreen not allowed in this environment.");
       }
   };
 
@@ -1137,6 +1157,19 @@ export const AuthScreen: React.FC = () => {
       <LandingPageStyles />
       <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} />
       {viewDoc && <LegalDocViewer docType={viewDoc} onClose={() => setViewDoc(null)} />}
+
+      {/* Toast Notifications */}
+      {error && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+          <div className="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <p className="text-sm font-medium">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* --- Header --- */}
       <header className={`landing-header ${scrolled ? 'scrolled' : ''}`}>

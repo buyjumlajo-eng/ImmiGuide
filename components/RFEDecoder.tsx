@@ -52,12 +52,27 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
   const [isRestored, setIsRestored] = useState(false);
   const [caseNumber, setCaseNumber] = useState('');
 
+  // --- Feedback State ---
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
   // --- Voice State ---
   const [isListening, setIsListening] = useState(false);
   const [interimText, setInterimText] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Clear feedback after 5 seconds
+  useEffect(() => {
+    if (error || successMsg) {
+      const timer = setTimeout(() => {
+        setError(null);
+        setSuccessMsg(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, successMsg]);
 
   // --- Load/Save State ---
   useEffect(() => {
@@ -97,7 +112,7 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
   // Manual Save Trigger
   const handleManualSave = () => {
       if (!analysis) {
-          alert("No analysis data to save.");
+          setError("No analysis data to save.");
           return;
       }
       const stateToSave = {
@@ -106,7 +121,7 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
           caseNumber
       };
       localStorage.setItem('immi_rfe_state', JSON.stringify(stateToSave));
-      alert("Session saved locally!");
+      setSuccessMsg("Session saved locally!");
   };
 
   // Ensure voices are loaded (Chrome quirk)
@@ -141,7 +156,7 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
   const startListening = useCallback(() => {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-          alert("Your browser does not support voice recognition. Please use Chrome.");
+          setError("Your browser does not support voice recognition. Please use Chrome.");
           return;
       }
 
@@ -182,7 +197,7 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
       recognition.onerror = (event: any) => {
           console.error("Speech Error:", event.error);
           if (event.error === 'not-allowed') {
-              alert("Microphone blocked. Please allow access.");
+              setError("Microphone blocked. Please allow access.");
               stopListening();
           }
       };
@@ -240,7 +255,7 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
         const isDocx = file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.name.endsWith('.docx');
 
         if (!isPdf && !isImage && !isDocx) {
-            alert('Please upload a PDF, DOCX, or Image file.');
+            setError('Please upload a PDF, DOCX, or Image file.');
             return;
         }
 
@@ -309,7 +324,7 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
       }
       setAnalysis(result);
     } catch (e: any) {
-      alert(e.message || "Failed to analyze. Please ensure the content is valid.");
+      setError(e.message || "Failed to analyze. Please ensure the content is valid.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -334,7 +349,7 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
         setGeneratedLetter(letter);
         setShowLetter(true);
     } catch (e: any) {
-        alert(e.message || "Failed to generate response letter.");
+        setError(e.message || "Failed to generate response letter.");
     } finally {
         setIsGeneratingLetter(false);
     }
@@ -354,7 +369,31 @@ export const RFEDecoder: React.FC<RFEDecoderProps> = ({ onViewChange }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20 relative">
+      {/* Toast Notifications */}
+      {(error || successMsg) && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+          {error && (
+            <div className="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <p className="text-sm font-medium">{error}</p>
+              <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          {successMsg && (
+            <div className="bg-green-50 text-green-800 border border-green-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <p className="text-sm font-medium">{successMsg}</p>
+              <button onClick={() => setSuccessMsg(null)} className="ml-auto text-green-400 hover:text-green-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="text-center max-w-2xl mx-auto relative">
         <h1 className="text-3xl font-bold text-slate-900 mb-3">{t('rfeDecoder')} & {t('responseDraft')}</h1>
         <p className="text-slate-500">

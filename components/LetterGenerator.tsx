@@ -16,7 +16,9 @@ import {
   PlusCircle,
   RotateCcw,
   BookOpen,
-  Save
+  Save,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 
 interface EvidenceCategory {
@@ -45,6 +47,21 @@ export const LetterGenerator: React.FC = () => {
   const [letter, setLetter] = useState('');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
+  // --- Feedback State ---
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Clear feedback after 5 seconds
+  useEffect(() => {
+    if (error || successMsg) {
+      const timer = setTimeout(() => {
+        setError(null);
+        setSuccessMsg(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, successMsg]);
+
   // --- Persistence Logic ---
   useEffect(() => {
       const savedState = localStorage.getItem('immi_letter_state');
@@ -72,8 +89,7 @@ export const LetterGenerator: React.FC = () => {
       };
       localStorage.setItem('immi_letter_state', JSON.stringify(stateToSave));
       setLastSaved(new Date());
-      // Optional: Visual feedback could be added here (toast), using simple alert for now
-      alert("Draft saved to local storage!");
+      setSuccessMsg("Draft saved to local storage!");
   };
 
   // Dynamic Label Helpers
@@ -203,7 +219,7 @@ export const LetterGenerator: React.FC = () => {
 
       } catch (e: any) {
           console.error(e);
-          alert(e.message || "Failed to generate letter");
+          setError(e.message || "Failed to generate letter");
       } finally {
           setIsGenerating(false);
       }
@@ -237,11 +253,35 @@ export const LetterGenerator: React.FC = () => {
 
   const handleCopy = () => {
       navigator.clipboard.writeText(letter);
-      alert("Letter copied to clipboard!");
+      setSuccessMsg("Letter copied to clipboard!");
   };
 
   return (
-    <div className="max-w-5xl mx-auto animate-in fade-in duration-500 pb-20">
+    <div className="max-w-5xl mx-auto animate-in fade-in duration-500 pb-20 relative">
+      {/* Toast Notifications */}
+      {(error || successMsg) && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+          {error && (
+            <div className="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <p className="text-sm font-medium">{error}</p>
+              <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          {successMsg && (
+            <div className="bg-green-50 text-green-800 border border-green-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+              <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <p className="text-sm font-medium">{successMsg}</p>
+              <button onClick={() => setSuccessMsg(null)} className="ml-auto text-green-400 hover:text-green-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="text-center mb-10 relative">
           <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center justify-center gap-2">
              <PenTool className="w-8 h-8 text-blue-600" /> AI Legal Letter Builder

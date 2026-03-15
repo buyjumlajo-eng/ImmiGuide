@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { analyzeCaseRisk } from '../services/geminiService';
 import { RiskProfile } from '../types';
@@ -15,7 +15,8 @@ import {
   DollarSign,
   Heart,
   Calendar,
-  Lock
+  Lock,
+  X
 } from 'lucide-react';
 
 export const RiskAnalyzer: React.FC = () => {
@@ -37,6 +38,19 @@ export const RiskAnalyzer: React.FC = () => {
       priorImmigrationViolations: 'None'
   });
 
+  // --- Feedback State ---
+  const [error, setError] = useState<string | null>(null);
+
+  // Clear feedback after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const handleAnalyze = async () => {
       setIsAnalyzing(true);
       try {
@@ -44,7 +58,7 @@ export const RiskAnalyzer: React.FC = () => {
           setResult(profile);
       } catch (e: any) {
           console.error(e);
-          alert(e.message || "Failed to analyze risk.");
+          setError(e.message || "Failed to analyze risk.");
       } finally {
           setIsAnalyzing(false);
       }
@@ -71,7 +85,20 @@ export const RiskAnalyzer: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in pb-20">
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in pb-20 relative">
+      {/* Toast Notifications */}
+      {error && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+          <div className="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <p className="text-sm font-medium">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-3 flex items-center justify-center gap-3">
               <FileSearch className="w-8 h-8 text-indigo-600" />

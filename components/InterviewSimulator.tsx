@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   RefreshCw,
   Loader2,
-  MicOff
+  MicOff,
+  X
 } from 'lucide-react';
 
 export const InterviewSimulator: React.FC = () => {
@@ -30,16 +31,36 @@ export const InterviewSimulator: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
+  // --- Feedback State ---
+  const [error, setError] = useState<string | null>(null);
+
+  // Clear feedback after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const startSession = async () => {
       setSessionActive(true);
       setFeedback(null);
       setHistory([]);
       setIsProcessing(true);
       
-      const firstQ = await getInterviewQuestion([], interviewType, language);
-      setCurrentQuestion(firstQ);
-      setHistory([{ role: 'model', text: firstQ }]);
-      setIsProcessing(false);
+      try {
+        const firstQ = await getInterviewQuestion([], interviewType, language);
+        setCurrentQuestion(firstQ);
+        setHistory([{ role: 'model', text: firstQ }]);
+      } catch (e: any) {
+        console.error(e);
+        setError("Failed to start session. Please try again.");
+        setSessionActive(false);
+      } finally {
+        setIsProcessing(false);
+      }
   };
 
   const endSession = async () => {
@@ -48,8 +69,9 @@ export const InterviewSimulator: React.FC = () => {
           const report = await getInterviewFeedback(history, language);
           setFeedback(report);
           setSessionActive(false);
-      } catch (e) {
+      } catch (e: any) {
           console.error(e);
+          setError("Failed to generate report.");
       } finally {
           setIsProcessing(false);
       }
@@ -63,11 +85,16 @@ export const InterviewSimulator: React.FC = () => {
       setUserResponse('');
       setIsProcessing(true);
 
-      const nextQ = await getInterviewQuestion(newHistory, interviewType, language);
-      
-      setHistory(prev => [...prev, { role: 'model', text: nextQ }]);
-      setCurrentQuestion(nextQ);
-      setIsProcessing(false);
+      try {
+        const nextQ = await getInterviewQuestion(newHistory, interviewType, language);
+        setHistory(prev => [...prev, { role: 'model', text: nextQ }]);
+        setCurrentQuestion(nextQ);
+      } catch (e: any) {
+        console.error(e);
+        setError("Failed to get next question.");
+      } finally {
+        setIsProcessing(false);
+      }
   };
 
   // --- Voice Logic (Reuse from RFE) ---
@@ -77,7 +104,10 @@ export const InterviewSimulator: React.FC = () => {
           setIsListening(false);
       } else {
           const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (!SpeechRecognition) return alert("Browser not supported");
+          if (!SpeechRecognition) {
+            setError("Browser not supported for voice recognition.");
+            return;
+          }
           
           const recognition = new SpeechRecognition();
           recognition.lang = language === 'es' ? 'es-ES' : 'en-US';
@@ -97,7 +127,20 @@ export const InterviewSimulator: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in pb-20">
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in pb-20 relative">
+       {/* Toast Notifications */}
+       {error && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+          <div className="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <p className="text-sm font-medium">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
        <div className="text-center mb-8">
            <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center justify-center gap-3">
                <Mic2 className="w-8 h-8 text-blue-600" />

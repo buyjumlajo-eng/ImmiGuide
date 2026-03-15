@@ -19,7 +19,8 @@
     "posthog-js": "1.160.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "react-i18next": "15.0.1"
+    "react-i18next": "15.0.1",
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",

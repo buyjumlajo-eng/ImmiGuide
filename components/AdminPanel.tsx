@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
-  const { attorneys, announcements, applications, addAttorney, deleteAttorney, addAnnouncement, deleteAnnouncement, approveApplication, rejectApplication } = useData();
-  const [activeTab, setActiveTab] = useState<'attorneys' | 'announcements' | 'applications'>('applications');
+  const { attorneys, announcements, applications, users, addAttorney, deleteAttorney, addAnnouncement, deleteAnnouncement, approveApplication, rejectApplication } = useData();
+  const [activeTab, setActiveTab] = useState<'attorneys' | 'announcements' | 'applications' | 'users'>('applications');
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Simple form state for adding attorney
@@ -88,7 +88,13 @@ export const AdminPanel: React.FC = () => {
             onClick={() => setActiveTab('attorneys')}
             className={`pb-4 px-2 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'attorneys' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
           >
-              <Users className="w-4 h-4" /> Attorney Database
+              <Briefcase className="w-4 h-4" /> Attorney Database
+          </button>
+          <button 
+            onClick={() => setActiveTab('users')}
+            className={`pb-4 px-2 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors whitespace-nowrap ${activeTab === 'users' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+          >
+              <Users className="w-4 h-4" /> Users & Subscribers
           </button>
       </div>
 
@@ -265,6 +271,69 @@ export const AdminPanel: React.FC = () => {
                                       >
                                           <Trash2 className="w-4 h-4" />
                                       </button>
+                                  </td>
+                              </tr>
+                          ))}
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      )}
+
+      {activeTab === 'users' && (
+          <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                      <h3 className="text-slate-500 text-sm font-bold uppercase mb-2">Total Users</h3>
+                      <p className="text-3xl font-bold text-slate-900">{users.length}</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                      <h3 className="text-slate-500 text-sm font-bold uppercase mb-2">Paid Subscribers</h3>
+                      <p className="text-3xl font-bold text-indigo-600">
+                          {users.filter(u => u.subscriptionTier === 'monthly' || u.subscriptionTier === 'annual').length}
+                      </p>
+                  </div>
+                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                      <h3 className="text-slate-500 text-sm font-bold uppercase mb-2">One-Time Purchases</h3>
+                      <p className="text-3xl font-bold text-emerald-600">
+                          {users.filter(u => u.subscriptionTier === 'one_form').length}
+                      </p>
+                  </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                  <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                              <th className="p-4 font-bold text-slate-700">User</th>
+                              <th className="p-4 font-bold text-slate-700">Email</th>
+                              <th className="p-4 font-bold text-slate-700">Subscription Tier</th>
+                              <th className="p-4 font-bold text-slate-700 text-right">Status</th>
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                          {users.map((user) => (
+                              <tr key={user.id} className="hover:bg-slate-50">
+                                  <td className="p-4">
+                                      <div className="flex items-center gap-3">
+                                          <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full" />
+                                          <span className="font-medium text-slate-900">{user.name}</span>
+                                      </div>
+                                  </td>
+                                  <td className="p-4 text-slate-600">{user.email}</td>
+                                  <td className="p-4">
+                                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                                          user.subscriptionTier === 'free' ? 'bg-slate-100 text-slate-600' :
+                                          user.subscriptionTier === 'one_form' ? 'bg-emerald-100 text-emerald-700' :
+                                          'bg-indigo-100 text-indigo-700'
+                                      }`}>
+                                          {user.subscriptionTier.replace('_', ' ')}
+                                      </span>
+                                  </td>
+                                  <td className="p-4 text-right">
+                                      <span className="inline-flex items-center gap-1 text-green-600 text-xs font-bold">
+                                          <CheckCircle className="w-3 h-3" /> Active
+                                      </span>
                                   </td>
                               </tr>
                           ))}

@@ -111,8 +111,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         if (error) {
             console.error("Login error:", error);
-            alert("Login failed: " + error.message);
             setIsLoading(false);
+            throw error;
         }
         // Redirect happens automatically
     } else {
@@ -166,7 +166,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   throw error;
               }
               if (data.user && !data.session) {
-                  alert("Please check your email to confirm your registration.");
+                  throw new Error("Please check your email to confirm your registration.");
               }
           } else {
               // Mock Sign Up

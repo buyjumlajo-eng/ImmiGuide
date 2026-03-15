@@ -19,7 +19,8 @@ import {
   ShieldCheck,
   KeyRound,
   CheckCircle,
-  CloudOff
+  CloudOff,
+  AlertTriangle
 } from 'lucide-react';
 import { StoredDocument } from '../types';
 import { generateVaultKey, exportKey, importKey, encryptData, decryptData } from '../services/encryption';
@@ -42,6 +43,21 @@ export const DocumentVault: React.FC = () => {
   const [viewDoc, setViewDoc] = useState<StoredDocument | null>(null);
   const [decryptedPreview, setDecryptedPreview] = useState<string | null>(null);
   const [isDecrypting, setIsDecrypting] = useState(false);
+
+  // --- Feedback State ---
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Clear feedback after 5 seconds
+  useEffect(() => {
+    if (error || successMsg) {
+      const timer = setTimeout(() => {
+        setError(null);
+        setSuccessMsg(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, successMsg]);
 
   // --- Key Management ---
   useEffect(() => {
@@ -120,7 +136,7 @@ export const DocumentVault: React.FC = () => {
   // --- Upload & Encrypt ---
   const processFile = (file: File) => {
     if (!vaultKey) {
-        alert("Encryption key not ready. Please refresh.");
+        setError("Encryption key not ready. Please refresh.");
         return;
     }
 
@@ -211,11 +227,12 @@ export const DocumentVault: React.FC = () => {
                 setIsUploading(false);
                 setUploadProgress(0);
                 setEncryptionStatus('');
+                setSuccessMsg("File encrypted and uploaded successfully!");
             }, 500);
 
         } catch (e: any) {
             console.error(e);
-            alert("Upload failed: " + e.message);
+            setError("Upload failed: " + e.message);
             setIsUploading(false);
         }
     };
@@ -281,6 +298,7 @@ export const DocumentVault: React.FC = () => {
       if (!supabase) {
           localStorage.setItem('immi_vault_docs', JSON.stringify(newDocs));
       }
+      setSuccessMsg("File deleted successfully.");
   };
 
   // ... Drag and Drop handlers ...
@@ -362,6 +380,30 @@ export const DocumentVault: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20 relative">
+      {/* Toast Notifications */}
+      {(error || successMsg) && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+          {error && (
+            <div className="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <p className="text-sm font-medium">{error}</p>
+              <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          {successMsg && (
+            <div className="bg-green-50 text-green-800 border border-green-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <p className="text-sm font-medium">{successMsg}</p>
+              <button onClick={() => setSuccessMsg(null)} className="ml-auto text-green-400 hover:text-green-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">

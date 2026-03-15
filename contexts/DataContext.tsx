@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { XCircle, X } from 'lucide-react';
 import { Attorney, Announcement, AttorneyApplication } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -90,10 +91,49 @@ const INITIAL_APPLICATIONS: AttorneyApplication[] = [
     }
 ];
 
+const INITIAL_USERS: User[] = [
+    {
+        id: 'user_1',
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=random',
+        subscriptionTier: 'free'
+    },
+    {
+        id: 'user_2',
+        name: 'Alice Smith',
+        email: 'alice.smith@example.com',
+        avatar: 'https://ui-avatars.com/api/?name=Alice+Smith&background=random',
+        subscriptionTier: 'monthly'
+    },
+    {
+        id: 'user_3',
+        name: 'Bob Johnson',
+        email: 'bob.j@example.com',
+        avatar: 'https://ui-avatars.com/api/?name=Bob+Johnson&background=random',
+        subscriptionTier: 'annual'
+    },
+    {
+        id: 'user_4',
+        name: 'Emma Davis',
+        email: 'emma.d@example.com',
+        avatar: 'https://ui-avatars.com/api/?name=Emma+Davis&background=random',
+        subscriptionTier: 'one_form'
+    },
+    {
+        id: 'user_5',
+        name: 'Michael Brown',
+        email: 'mbrown@example.com',
+        avatar: 'https://ui-avatars.com/api/?name=Michael+Brown&background=random',
+        subscriptionTier: 'monthly'
+    }
+];
+
 interface DataContextType {
   attorneys: Attorney[];
   announcements: Announcement[];
   applications: AttorneyApplication[];
+  users: User[];
   addAttorney: (attorney: Omit<Attorney, 'id'>) => void;
   deleteAttorney: (id: string) => void;
   addAnnouncement: (announcement: Omit<Announcement, 'id' | 'date'>) => void;
@@ -139,6 +179,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [attorneys, setAttorneys] = useState<Attorney[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [applications, setApplications] = useState<AttorneyApplication[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Initial Load
   useEffect(() => {
@@ -190,6 +232,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   const savedAnn = localStorage.getItem('immi_data_announcements');
                   setAnnouncements(savedAnn ? JSON.parse(savedAnn).map((a: any) => ({...a, date: new Date(a.date)})) : INITIAL_ANNOUNCEMENTS);
 
+                  // 4. Users (Local only for now)
+                  const savedUsers = localStorage.getItem('immi_data_users');
+                  setUsers(savedUsers ? JSON.parse(savedUsers) : INITIAL_USERS);
+
               } catch (e) {
                   console.error("Supabase connection issue:", e);
               }
@@ -203,6 +249,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
               const savedApps = localStorage.getItem('immi_data_applications');
               setApplications(savedApps ? JSON.parse(savedApps).map((a: any) => ({...a, submittedDate: new Date(a.submittedDate)})) : INITIAL_APPLICATIONS);
+
+              const savedUsers = localStorage.getItem('immi_data_users');
+              setUsers(savedUsers ? JSON.parse(savedUsers) : INITIAL_USERS);
           }
       };
       loadData();
@@ -221,6 +270,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!supabase) localStorage.setItem('immi_data_applications', JSON.stringify(applications));
   }, [applications]);
 
+  useEffect(() => {
+    localStorage.setItem('immi_data_users', JSON.stringify(users));
+  }, [users]);
+
   // Actions
   const addAttorney = async (data: Omit<Attorney, 'id'>) => {
       if (supabase) {
@@ -234,7 +287,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setAttorneys(prev => [...prev, mapAttorneyFromDB(newRow)]);
           } else {
               console.error("Add attorney failed", error);
-              alert("Failed to save to database.");
+              setToast({ message: "Failed to save to database.", type: 'error' });
+              setTimeout(() => setToast(null), 5000);
           }
       } else {
           const newAttorney = { ...data, id: Date.now().toString() };
@@ -288,7 +342,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   submittedDate: new Date(newApp.submitted_date)
               }]);
           } else {
-              alert("Application submission failed. Please try again.");
+              setToast({ message: "Application submission failed. Please try again.", type: 'error' });
+              setTimeout(() => setToast(null), 5000);
               console.error(error);
           }
       } else {
@@ -358,6 +413,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         attorneys, 
         announcements, 
         applications,
+        users,
         addAttorney, 
         deleteAttorney, 
         addAnnouncement, 
@@ -367,6 +423,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         rejectApplication
     }}>
       {children}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-red-50 text-red-800 border border-red-200 animate-in slide-in-from-bottom-5">
+          <XCircle className="w-5 h-5 text-red-500" />
+          <p className="font-medium">{toast.message}</p>
+          <button onClick={() => setToast(null)} className="p-1 hover:bg-red-100 rounded-full transition-colors ml-2">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </DataContext.Provider>
   );
 };

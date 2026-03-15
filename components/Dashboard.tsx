@@ -37,6 +37,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   
+  // --- Feedback State ---
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Clear feedback after 5 seconds
+  useEffect(() => {
+    if (successMsg || errorMsg) {
+      const timer = setTimeout(() => {
+        setSuccessMsg(null);
+        setErrorMsg(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg, errorMsg]);
+
   useEffect(() => {
       if ('Notification' in window && Notification.permission === 'granted') {
           setNotificationsEnabled(true);
@@ -49,7 +64,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
           setNotificationsEnabled(true);
           // Trigger a demo notification
           simulateCaseUpdate();
-          alert("Notifications enabled! You will receive a test alert in 5 seconds.");
+          setSuccessMsg("Notifications enabled! You will receive a test alert in 5 seconds.");
+      } else {
+          setErrorMsg("Notification permission denied.");
       }
   };
   
@@ -71,34 +88,70 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
               priorityDate: "2023-10-15"
           }, language);
           setPrediction(result);
-      } catch (e) {
+      } catch (e: any) {
           console.error(e);
+          setErrorMsg("Failed to predict timeline.");
       } finally {
           setIsPredicting(false);
       }
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 relative">
+      {/* Toast Notifications */}
+      {(successMsg || errorMsg) && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+          {successMsg && (
+            <div className="bg-green-50 text-green-800 border border-green-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <p className="text-sm font-medium">{successMsg}</p>
+              <button onClick={() => setSuccessMsg(null)} className="ml-auto text-green-500 hover:text-green-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          {errorMsg && (
+            <div className="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <p className="text-sm font-medium">{errorMsg}</p>
+              <button onClick={() => setErrorMsg(null)} className="ml-auto text-red-400 hover:text-red-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <header className="mb-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
             <h1 className="text-3xl font-bold text-slate-900">{t('welcome')}</h1>
             <p className="text-slate-500 mt-2">{t('managing')}</p>
         </div>
         
-        {/* Notification Toggle */}
-        <button 
-            onClick={notificationsEnabled ? undefined : handleEnableNotifications}
-            disabled={notificationsEnabled}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm ${
-                notificationsEnabled 
-                ? 'bg-green-100 text-green-700 cursor-default' 
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-blue-600'
-            }`}
-        >
-            {notificationsEnabled ? <BellRing className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-            {notificationsEnabled ? 'Alerts Active' : 'Enable Case Alerts'}
-        </button>
+        <div className="flex gap-3">
+            {/* Notification Toggle */}
+            <button 
+                onClick={notificationsEnabled ? undefined : handleEnableNotifications}
+                disabled={notificationsEnabled}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm ${
+                    notificationsEnabled 
+                    ? 'bg-green-100 text-green-700 cursor-default' 
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-blue-600'
+                }`}
+            >
+                {notificationsEnabled ? <BellRing className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                {notificationsEnabled ? 'Alerts Active' : 'Enable Case Alerts'}
+            </button>
+
+            {/* Print Status */}
+            <button 
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-blue-600"
+            >
+                <FileText className="w-4 h-4" />
+                Print Status
+            </button>
+        </div>
       </header>
 
       {/* Admin Announcements Section */}
@@ -268,8 +321,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
             <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-pink-200 transition-colors">
                 <Globe className="w-6 h-6 text-pink-600" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Translations</h3>
-            <p className="text-sm text-slate-500 mb-4">Instant AI or Certified Official copies.</p>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">{t('translationsTitle')}</h3>
+            <p className="text-sm text-slate-500 mb-4">{t('translationsDesc')}</p>
             <div className="flex items-center text-sm font-semibold text-pink-600">
                 <ArrowRight className={`w-4 h-4 ${dir === 'rtl' ? 'mr-1 rotate-180' : 'ml-1'} group-hover:translate-x-1 transition-transform`} />
             </div>
@@ -290,6 +343,91 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange }) => {
             </div>
         </div>
 
+      </div>
+
+      {/* Next Steps & Recent Documents */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        {/* Next Steps */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+          <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-blue-600" />
+            {t('nextSteps')}
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-blue-600 font-bold text-sm">1</span>
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm">{t('completeForm')}</h4>
+                <p className="text-xs text-slate-600 mt-1">{t('completeFormDesc')}</p>
+                <button onClick={() => onViewChange('forms')} className={`mt-2 text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1`}>
+                  {t('resumeForm')} <ArrowRight className={`w-3 h-3 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 opacity-70">
+              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-slate-500 font-bold text-sm">2</span>
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm">{t('uploadEvidence')}</h4>
+                <p className="text-xs text-slate-600 mt-1">{t('uploadEvidenceDesc')}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Documents */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+          <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-indigo-600" />
+            {t('recentDocuments')}
+          </h2>
+          <div className="space-y-3">
+            {[
+              { name: 'Passport_Scan.pdf', date: 'Oct 12, 2023', type: 'PDF' },
+              { name: 'Marriage_Certificate.jpg', date: 'Oct 10, 2023', type: 'Image' },
+              { name: 'I-130_Draft_v2.pdf', date: 'Oct 08, 2023', type: 'Form' }
+            ].map((doc, i) => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors cursor-pointer" onClick={() => onViewChange('documents')}>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{doc.name}</p>
+                    <p className="text-xs text-slate-500">{doc.date} &bull; {doc.type}</p>
+                  </div>
+                </div>
+                <ArrowRight className={`w-4 h-4 text-slate-400 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+              </div>
+            ))}
+          </div>
+          <button onClick={() => onViewChange('documents')} className="w-full mt-4 py-2 text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors">
+            {t('viewAllDocuments')}
+          </button>
+        </div>
+      </div>
+
+      {/* Recommended Articles */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mt-8">
+        <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-purple-600" />
+          {t('recommendedArticles')}
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            { title: t('article1Title'), readTime: t('article1ReadTime') },
+            { title: t('article2Title'), readTime: t('article2ReadTime') },
+            { title: t('article3Title'), readTime: t('article3ReadTime') }
+          ].map((article, i) => (
+            <div key={i} className="p-4 rounded-xl border border-slate-100 hover:border-purple-200 hover:bg-purple-50 transition-colors cursor-pointer" onClick={() => onViewChange('knowledge')}>
+              <h3 className="font-bold text-slate-900 text-sm mb-2">{article.title}</h3>
+              <p className="text-xs text-slate-500">{article.readTime}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

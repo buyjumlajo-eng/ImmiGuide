@@ -26,7 +26,9 @@ import {
   Database,
   HardDrive,
   Maximize,
-  Minimize
+  Minimize,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { ChatWidget } from './ChatWidget';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -47,6 +49,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
   const langMenuRef = React.useRef<HTMLDivElement>(null);
   const { t, language, setLanguage, dir } = useLanguage();
   const { user, logout } = useAuth();
+
+  // --- Feedback State ---
+  const [error, setError] = useState<string | null>(null);
+
+  // Clear feedback after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -78,7 +93,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
           }
       } catch (e) {
           console.error("Fullscreen error:", e);
-          alert("Fullscreen blocked by browser/environment.");
+          setError("Fullscreen blocked by browser/environment.");
       }
   };
 
@@ -138,6 +153,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
 
   return (
     <div className="min-h-screen bg-slate-50 flex" dir={dir}>
+      {/* Toast Notifications */}
+      {error && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+          <div className="bg-red-50 text-red-800 border border-red-200 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-top-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <p className="text-sm font-medium">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar - Desktop */}
       <aside className={`hidden md:flex flex-col w-64 bg-white border-${dir === 'rtl' ? 'l' : 'r'} border-slate-200 fixed h-full z-20 ${dir === 'rtl' ? 'right-0' : 'left-0'}`}>
         <div className="p-6 border-b border-slate-100">

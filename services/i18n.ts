@@ -75,7 +75,24 @@ const resources = {
       rfeMatch: "Recommended for your RFE",
       nextAvailable: "Next available",
       allSpecialties: "All Specialties",
-      allLanguages: "All Languages"
+      allLanguages: "All Languages",
+      nextSteps: "Next Steps",
+      recentDocuments: "Recent Documents",
+      viewAllDocuments: "View All Documents",
+      resumeForm: "Resume Form",
+      completeForm: "Complete Form I-130",
+      completeFormDesc: "You have 12 fields remaining in the physical address section.",
+      uploadEvidence: "Upload Supporting Evidence",
+      uploadEvidenceDesc: "Marriage certificate and proof of bona fide marriage.",
+      recommendedArticles: "Recommended Articles",
+      article1Title: "How to prepare for your I-130 Interview",
+      article1ReadTime: "5 min read",
+      article2Title: "Common reasons for RFE in 2024",
+      article2ReadTime: "8 min read",
+      article3Title: "Understanding the Visa Bulletin",
+      article3ReadTime: "6 min read",
+      translationsTitle: "Translations",
+      translationsDesc: "Instant AI or Certified Official copies."
     }
   },
   es: {
@@ -150,7 +167,24 @@ const resources = {
       rfeMatch: "Recomendado para su RFE",
       nextAvailable: "Próximo disponible",
       allSpecialties: "Todas las Especialidades",
-      allLanguages: "Todos los Idiomas"
+      allLanguages: "Todos los Idiomas",
+      nextSteps: "Próximos Pasos",
+      recentDocuments: "Documentos Recientes",
+      viewAllDocuments: "Ver Todos los Documentos",
+      resumeForm: "Reanudar Formulario",
+      completeForm: "Completar Formulario I-130",
+      completeFormDesc: "Te quedan 12 campos en la sección de dirección física.",
+      uploadEvidence: "Subir Evidencia de Apoyo",
+      uploadEvidenceDesc: "Certificado de matrimonio y prueba de matrimonio de buena fe.",
+      recommendedArticles: "Artículos Recomendados",
+      article1Title: "Cómo prepararse para su entrevista I-130",
+      article1ReadTime: "5 min de lectura",
+      article2Title: "Razones comunes para un RFE en 2024",
+      article2ReadTime: "8 min de lectura",
+      article3Title: "Entendiendo el Boletín de Visas",
+      article3ReadTime: "6 min de lectura",
+      translationsTitle: "Traducciones",
+      translationsDesc: "Copias oficiales certificadas o por IA instantánea."
     }
   },
   zh: {
@@ -225,7 +259,24 @@ const resources = {
       rfeMatch: "针对您的 RFE 推荐",
       nextAvailable: "下次可用",
       allSpecialties: "所有专业",
-      allLanguages: "所有语言"
+      allLanguages: "所有语言",
+      nextSteps: "下一步",
+      recentDocuments: "最近的文档",
+      viewAllDocuments: "查看所有文档",
+      resumeForm: "恢复表单",
+      completeForm: "完成表格 I-130",
+      completeFormDesc: "在实际居住地址部分还有 12 个字段未完成。",
+      uploadEvidence: "上传支持证据",
+      uploadEvidenceDesc: "结婚证书和真实婚姻证明。",
+      recommendedArticles: "推荐文章",
+      article1Title: "如何准备您的 I-130 面试",
+      article1ReadTime: "5 分钟阅读",
+      article2Title: "2024 年 RFE 的常见原因",
+      article2ReadTime: "8 分钟阅读",
+      article3Title: "了解签证公告",
+      article3ReadTime: "6 分钟阅读",
+      translationsTitle: "翻译",
+      translationsDesc: "即时 AI 或认证官方副本。"
     }
   },
   ar: {
@@ -300,7 +351,24 @@ const resources = {
       rfeMatch: "موصى به ل RFE الخاص بك",
       nextAvailable: "المتاح التالي",
       allSpecialties: "جميع التخصصات",
-      allLanguages: "جميع اللغات"
+      allLanguages: "جميع اللغات",
+      nextSteps: "الخطوات التالية",
+      recentDocuments: "المستندات الأخيرة",
+      viewAllDocuments: "عرض جميع المستندات",
+      resumeForm: "استئناف النموذج",
+      completeForm: "إكمال نموذج I-130",
+      completeFormDesc: "لديك 12 حقلاً متبقياً في قسم العنوان الفعلي.",
+      uploadEvidence: "تحميل الأدلة الداعمة",
+      uploadEvidenceDesc: "شهادة الزواج وإثبات الزواج بحسن نية.",
+      recommendedArticles: "مقالات موصى بها",
+      article1Title: "كيف تستعد لمقابلة I-130 الخاصة بك",
+      article1ReadTime: "قراءة لمدة 5 دقائق",
+      article2Title: "الأسباب الشائعة لـ RFE في عام 2024",
+      article2ReadTime: "قراءة لمدة 8 دقائق",
+      article3Title: "فهم نشرة التأشيرات",
+      article3ReadTime: "قراءة لمدة 6 دقائق",
+      translationsTitle: "الترجمات",
+      translationsDesc: "نسخ رسمية معتمدة أو بالذكاء الاصطناعي الفوري."
     }
   },
   fr: {
@@ -375,7 +443,24 @@ const resources = {
       rfeMatch: "Recommandé pour votre RFE",
       nextAvailable: "Prochain disponible",
       allSpecialties: "Toutes Spécialités",
-      allLanguages: "Toutes Langues"
+      allLanguages: "Toutes Langues",
+      nextSteps: "Prochaines Étapes",
+      recentDocuments: "Documents Récents",
+      viewAllDocuments: "Voir Tous les Documents",
+      resumeForm: "Reprendre le Formulaire",
+      completeForm: "Compléter le Formulaire I-130",
+      completeFormDesc: "Il vous reste 12 champs dans la section adresse physique.",
+      uploadEvidence: "Télécharger des Preuves à l'Appui",
+      uploadEvidenceDesc: "Certificat de mariage et preuve de mariage de bonne foi.",
+      recommendedArticles: "Articles Recommandés",
+      article1Title: "Comment se préparer à votre entretien I-130",
+      article1ReadTime: "5 min de lecture",
+      article2Title: "Raisons courantes de RFE en 2024",
+      article2ReadTime: "8 min de lecture",
+      article3Title: "Comprendre le Bulletin des Visas",
+      article3ReadTime: "6 min de lecture",
+      translationsTitle: "Traductions",
+      translationsDesc: "Copies officielles certifiées ou par IA instantanée."
     }
   },
   pt: {
@@ -450,7 +535,24 @@ const resources = {
       rfeMatch: "Recomendado para seu RFE",
       nextAvailable: "Próximo disponível",
       allSpecialties: "Todas as Especialidades",
-      allLanguages: "Todos os Idiomas"
+      allLanguages: "Todos os Idiomas",
+      nextSteps: "Próximos Passos",
+      recentDocuments: "Documentos Recentes",
+      viewAllDocuments: "Ver Todos os Documentos",
+      resumeForm: "Retomar Formulário",
+      completeForm: "Completar Formulário I-130",
+      completeFormDesc: "Você tem 12 campos restantes na seção de endereço físico.",
+      uploadEvidence: "Enviar Provas de Apoio",
+      uploadEvidenceDesc: "Certidão de casamento e prova de casamento de boa-fé.",
+      recommendedArticles: "Artigos Recomendados",
+      article1Title: "Como se preparar para a sua entrevista I-130",
+      article1ReadTime: "5 min de leitura",
+      article2Title: "Razões comuns para RFE em 2024",
+      article2ReadTime: "8 min de leitura",
+      article3Title: "Entendendo o Boletim de Vistos",
+      article3ReadTime: "6 min de leitura",
+      translationsTitle: "Traduções",
+      translationsDesc: "Cópias oficiais certificadas ou por IA instantânea."
     }
   },
   hi: {
@@ -525,7 +627,24 @@ const resources = {
       rfeMatch: "आपके RFE के लिए अनुशंसित",
       nextAvailable: "अगला उपलब्ध",
       allSpecialties: "सभी विशेषताएँ",
-      allLanguages: "सभी भाषाएँ"
+      allLanguages: "सभी भाषाएँ",
+      nextSteps: "अगले कदम",
+      recentDocuments: "हाल के दस्तावेज़",
+      viewAllDocuments: "सभी दस्तावेज़ देखें",
+      resumeForm: "फॉर्म फिर से शुरू करें",
+      completeForm: "फॉर्म I-130 पूरा करें",
+      completeFormDesc: "भौतिक पता अनुभाग में आपके 12 फ़ील्ड शेष हैं।",
+      uploadEvidence: "सहायक साक्ष्य अपलोड करें",
+      uploadEvidenceDesc: "विवाह प्रमाण पत्र और वास्तविक विवाह का प्रमाण।",
+      recommendedArticles: "अनुशंसित लेख",
+      article1Title: "अपने I-130 साक्षात्कार की तैयारी कैसे करें",
+      article1ReadTime: "5 मिनट पढ़ें",
+      article2Title: "2024 में RFE के सामान्य कारण",
+      article2ReadTime: "8 मिनट पढ़ें",
+      article3Title: "वीज़ा बुलेटिन को समझना",
+      article3ReadTime: "6 मिनट पढ़ें",
+      translationsTitle: "अनुवाद",
+      translationsDesc: "त्वरित एआई या प्रमाणित आधिकारिक प्रतियां।"
     }
   }
 };
