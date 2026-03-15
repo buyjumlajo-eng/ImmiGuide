@@ -1,7 +1,22 @@
 import { GoogleGenAI, Type, Modality, FunctionDeclaration } from "@google/genai";
 import { RFEAnalysis, FormFieldHelp, ValidationResult, Language, PredictionResult, CaseLawResult, InterviewFeedback, RiskProfile } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy initialize to prevent crash on module load if API key is missing
+let aiInstance: GoogleGenAI | null = null;
+
+const getAI = () => {
+    if (!aiInstance) {
+        const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            console.warn("Gemini API Key is missing. AI features will fail.");
+            // We still create it to avoid null checks everywhere, but it will fail on use
+            aiInstance = new GoogleGenAI({ apiKey: "MISSING_KEY" });
+        } else {
+            aiInstance = new GoogleGenAI({ apiKey });
+        }
+    }
+    return aiInstance;
+};
 
 // --- Rate Limiting Logic ---
 type RequestCategory = 'heavy' | 'light' | 'session';
@@ -197,7 +212,7 @@ export const analyzeRFE = async (input: GeminiInput, lang: Language = 'en'): Pro
         ];
     }
 
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: contentParts,
       config: {
@@ -264,7 +279,7 @@ export const generateRFEResponse = async (
         ];
     }
 
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: "gemini-3-pro-preview",
       contents: contentParts,
     });
@@ -322,7 +337,7 @@ export const generateCoverLetter = async (
         9. Language: English (Official). If user language is ${lang} and not English, add a [Translated Summary] block at the very top.
         `;
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-3-pro-preview",
             contents: prompt,
             config: {
@@ -365,7 +380,7 @@ export const translateDocument = async (
             ];
         }
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-3-pro-preview",
             contents: contentParts,
         });
@@ -385,7 +400,7 @@ export const predictCaseTimeline = async (
     try {
         checkRateLimit('heavy'); // Rate Limit Check
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-3-flash-preview",
             contents: `Predict the estimated approval date for this immigration case based on typical processing times.
             
@@ -432,7 +447,7 @@ export const analyzeCaseRisk = async (
     try {
         checkRateLimit('heavy'); // Rate Limit Check
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-3-pro-preview", // Use Pro for complex reasoning
             contents: `Act as a conservative Immigration Attorney. Analyze the following case facts for potential denial risks, inadmissibility issues, or "Red Flags".
             
@@ -484,7 +499,7 @@ export const getFieldHelp = async (question: string, context?: string, lang: Lan
   try {
     checkRateLimit('light'); // Rate Limit Check
 
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `The user is stuck on this USCIS form question: "${question}".
       Context provided by user: "${context || 'None'}".
@@ -537,7 +552,7 @@ export const validateFormInput = async (
   try {
     checkRateLimit('light'); // Rate Limit Check
 
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Act as a strict USCIS Immigration Officer reviewing a form application. 
       Validate the following input field.
@@ -599,7 +614,7 @@ export const searchCaseLaw = async (query: string, lang: Language = 'en'): Promi
     try {
         checkRateLimit('heavy'); // Rate Limit Check
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-3-pro-preview",
             contents: `Act as a legal researcher specialized in US Immigration Law (BIA, 9th Circuit, Supreme Court).
             Search query: "${query}"
@@ -656,7 +671,7 @@ export const getInterviewQuestion = async (
     try {
         checkRateLimit('light'); // Rate Limit Check
 
-        const chat = ai.chats.create({
+        const chat = getAI().chats.create({
             model: "gemini-3-flash-preview",
             config: {
                 systemInstruction: `You are a professional, slightly strict, but fair USCIS Immigration Officer conducting a ${interviewType} interview.
@@ -690,7 +705,7 @@ export const getInterviewFeedback = async (
     try {
         checkRateLimit('heavy'); // Rate Limit Check
 
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-3-pro-preview",
             contents: `Analyze this transcript of a simulated USCIS Immigration Interview.
             
@@ -735,7 +750,7 @@ export const getInterviewFeedback = async (
 
 export const getStrategyStream = async (history: {role: string, parts: {text: string}[]}[], message: string, lang: Language = 'en') => {
     checkRateLimit('light'); // Rate Limit Check
-    const chat = ai.chats.create({
+    const chat = getAI().chats.create({
         model: "gemini-3-pro-preview", 
         config: {
             systemInstruction: getSystemInstruction(lang) + " Focus on strategic options, pros/cons, timelines, and comparing visa types.",
@@ -828,7 +843,7 @@ const navigationTool: FunctionDeclaration = {
 
 export const getSupportChatStream = async (history: {role: string, parts: {text: string}[]}[], message: string, lang: Language = 'en') => {
     checkRateLimit('light'); // Rate Limit Check
-    const chat = ai.chats.create({
+    const chat = getAI().chats.create({
         model: "gemini-3-pro-preview", 
         config: {
             systemInstruction: getTextSystemInstruction(lang),
@@ -854,7 +869,7 @@ export const connectToLiveSession = async (
   }
 ) => {
   checkRateLimit('session'); // Rate Limit Check
-  return await ai.live.connect({
+  return await getAI().live.connect({
     model: 'gemini-2.5-flash-native-audio-preview-12-2025',
     callbacks: {
       onopen: callbacks.onOpen,

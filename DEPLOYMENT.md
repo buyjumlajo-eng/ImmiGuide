@@ -6,7 +6,7 @@
 1.  **Create Project**: Go to [database.new](https://database.new) and create a new project.
 2.  **Run SQL**: 
     *   Go to the **SQL Editor** in the left sidebar.
-    *   Copy the content from `supabase/schema.sql` in this project.
+    *   Copy the content from `SUPABASE_SCHEMA.sql` in this project.
     *   Paste it into the editor and click **Run**.
 3.  **Get Credentials**:
     *   Go to **Project Settings** -> **API**.
@@ -19,27 +19,21 @@
 3.  **Import**: Select your repository.
 4.  **Environment Variables**:
     *   Add the following variables:
-        *   `API_KEY`: Your Gemini API Key.
+        *   `GEMINI_API_KEY`: Your Gemini API Key.
         *   `VITE_SUPABASE_URL`: The Project URL from Phase 1.
         *   `VITE_SUPABASE_ANON_KEY`: The Anon Key from Phase 1.
+        *   `POSTHOG_API_KEY`: (Optional) Your PostHog Project API Key
+        *   `POSTHOG_HOST`: (Optional) e.g., `https://us.i.posthog.com`
+        *   `SENTRY_DSN`: (Optional) Your Sentry DSN
 5.  **Deploy**: Click **Deploy**.
 
-## Phase 3: Connect Code (Refactoring)
+## Phase 3: Troubleshooting "Empty White Page"
 
-Currently, the app uses `localStorage` for demo purposes. To switch to Supabase:
-
-1.  Install the client: `npm install @supabase/supabase-js`
-2.  Create `services/supabase.ts`:
-    ```ts
-    import { createClient } from '@supabase/supabase-js'
-
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-    export const supabase = createClient(supabaseUrl, supabaseKey)
-    ```
-3.  Update `AuthContext.tsx` to use `supabase.auth.signUp()` instead of `localStorage`.
-4.  Update `DocumentVault.tsx` to upload to Supabase Storage instead of local state.
+If you see an empty white page after deployment:
+1. **Check Environment Variables:** Ensure all required environment variables (especially `GEMINI_API_KEY`) are correctly set in Vercel.
+2. **Check Browser Console:** Open the developer tools in your browser (F12) and check the Console tab for any JavaScript errors.
+3. **Check Vercel Logs:** Go to your Vercel project dashboard, click on the deployment, and check the "Logs" tab for any build or runtime errors.
+4. **Supabase Connection:** If the app loads but data is missing, ensure your Supabase URL and Anon Key are correct. The app will fallback to local storage if it cannot connect to Supabase.
 
 ## Option A: Starting from Scratch (Local PC)
 

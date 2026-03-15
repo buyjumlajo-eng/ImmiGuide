@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ImmiGuide - Your Immigration Journey</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       body {
@@ -26,26 +25,12 @@
         background: #94a3b8; 
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@^1.36.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "mammoth": "https://esm.sh/mammoth@1.6.0",
-    "pdf-lib": "https://esm.sh/pdf-lib@1.17.1",
-    "posthog-js": "https://esm.sh/posthog-js@1.160.0",
-    "@sentry/react": "https://esm.sh/@sentry/react@8.9.2",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3",
-    "i18next": "https://esm.sh/i18next@23.15.1",
-    "react-i18next": "https://esm.sh/react-i18next@15.0.1"
-  }
-}
-</script>
+    <script>
+      window.process = { env: {} };
+    </script>
 </head>
   <body>
     <div id="root"></div>
-  </body>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

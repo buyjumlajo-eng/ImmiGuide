@@ -32,12 +32,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // 1. Check Supabase Session
     if (supabase) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            if (error) {
+                console.error("Error getting session:", error);
+                setIsLoading(false);
+            } else if (session?.user) {
                 mapSupabaseUser(session.user);
             } else {
                 setIsLoading(false);
             }
+        }).catch(err => {
+            console.error("Unexpected error getting session:", err);
+            setIsLoading(false);
         });
 
         // 2. Listen for Auth Changes
@@ -63,25 +69,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const mapSupabaseUser = async (sbUser: any) => {
-      // Check if we have a profile in 'users' table, if not create one
-      // For this demo, we'll map directly from Auth metadata
-      const { data: profile } = await supabase!
-        .from('users')
-        .select('*')
-        .eq('id', sbUser.id)
-        .single();
+      try {
+          // Check if we have a profile in 'users' table, if not create one
+          // For this demo, we'll map directly from Auth metadata
+          const { data: profile, error } = await supabase!
+            .from('users')
+            .select('*')
+            .eq('id', sbUser.id)
+            .single();
 
-      const newUser: User = {
-          id: sbUser.id,
-          email: sbUser.email || '',
-          name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
-          avatar: sbUser.user_metadata?.avatar_url || '',
-          subscriptionTier: profile?.subscription_tier || 'free'
-      };
+          if (error && error.code !== 'PGRST116') {
+              console.error("Error fetching user profile:", error);
+          }
 
-      setUser(newUser);
-      identifyUser(newUser.id, { email: newUser.email, subscription_tier: newUser.subscriptionTier });
-      setIsLoading(false);
+          const newUser: User = {
+              id: sbUser.id,
+              email: sbUser.email || '',
+              name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'User',
+              avatar: sbUser.user_metadata?.avatar_url || '',
+              subscriptionTier: profile?.subscription_tier || 'free'
+          };
+
+          setUser(newUser);
+          identifyUser(newUser.id, { email: newUser.email, subscription_tier: newUser.subscriptionTier });
+      } catch (err) {
+          console.error("Unexpected error mapping user:", err);
+      } finally {
+          setIsLoading(false);
+      }
   };
 
   const login = async () => {

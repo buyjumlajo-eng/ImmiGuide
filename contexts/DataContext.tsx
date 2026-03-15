@@ -154,6 +154,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                       setAttorneys(attData.map(mapAttorneyFromDB));
                   } else {
                       console.error("Error fetching attorneys:", attError);
+                      const savedAtt = localStorage.getItem('immi_data_attorneys');
+                      setAttorneys(savedAtt ? JSON.parse(savedAtt) : INITIAL_ATTORNEYS);
                   }
 
                   // 2. Fetch Applications
@@ -178,6 +180,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                           bio: '', 
                           partnershipModel: 'lead_gen'
                       })));
+                  } else {
+                      console.error("Error fetching applications:", appError);
+                      const savedApps = localStorage.getItem('immi_data_applications');
+                      setApplications(savedApps ? JSON.parse(savedApps).map((a: any) => ({...a, submittedDate: new Date(a.submittedDate)})) : INITIAL_APPLICATIONS);
                   }
 
                   // 3. Announcements (Local only for now as no schema table exists)
